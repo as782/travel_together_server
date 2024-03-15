@@ -29,7 +29,6 @@ const query = (sql, values) => {
                     reject(qerr);
                     return;
                 }
-                console.log('Query successful');
                 resolve({ result, fields });
             });
         });
