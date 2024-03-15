@@ -1,7 +1,7 @@
 const {query} = require('../../db/index');
 /**
  * 获取用户tags
- * @param {*} userIds 用户id
+ * @param {[]} userIds 用户ids
  * @returns 
  */
 const getUserTagsInfo = async (userIds) => {
