@@ -22,6 +22,6 @@ router.get('/getDynamicPost/:dynamic_post_id', getDynamicPost);
 router.get('/getTeamPost/:post_id', getTeamPost);
 
 // 分页查询
-router.get('/getDynamicPostsForPage', getDynamicPostsForPage);
-router.get('/getTeamPostsForPage', getTeamPostsForPage);
+router.post('/getDynamicPostsForPage', getDynamicPostsForPage);
+router.post('/getTeamPostsForPage', getTeamPostsForPage);
 module.exports = router;

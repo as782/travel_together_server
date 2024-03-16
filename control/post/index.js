@@ -1,6 +1,10 @@
+const { USERS, DYNAMIC_POSTS, DYNAMIC_POST_IMAGES, TEAM_ACTIVITY_POSTS, TEAM_ACTIVITY_IMAGES, ITINERARIES, DYNAMIC_POST_COMMENTS, DYNAMIC_POST_LIKES, TEAM_ACTIVITY_POST_COMMENTS, TEAM_ACTIVITY_POST_LIKES, USER_FOLLOWS } = require('../../db/config');
 const { query } = require('../../db/index');
 const getUserTagsInfo = require('../utils/getUserTags');
 const { insertDataToDatabase, associateImagesWithData } = require('./postRelativeImage');
+
+
+
 /**
  * 发布动态帖子
  * @param {Object} req - 请求对象
@@ -18,19 +22,19 @@ const publishDynamicPost = async (req, res) => {
             return res.status(400).json({ code: 400, msg: '缺少必要字段' });
         }
         // 查询用户存在
-        const { result: userResult } = await query(`SELECT * FROM users WHERE user_id = ?`, [user_id]);
+        const { result: userResult } = await query(`SELECT * FROM ${USERS} WHERE user_id = ?`, [user_id]);
         if (userResult.length === 0) {
             return res.status(400).json({ code: 400, msg: '用户不存在' });
         }
 
 
         // 插入到数据库，返回post id
-        const postId = await insertDataToDatabase('dynamic_posts', {
+        const postId = await insertDataToDatabase(DYNAMIC_POSTS, {
             user_id,
             content
         });
         // 通过 关联图片和帖子
-        await associateImagesWithData('dynamic_post_images', postId, image_urls, ['dynamic_post_id', 'image_url'])
+        await associateImagesWithData(DYNAMIC_POST_IMAGES, postId, image_urls, ['dynamic_post_id', 'image_url'])
 
         res.status(200).json({ code: 200, msg: '发布动态成功' });
     } catch (error) {
@@ -55,7 +59,6 @@ const updateDynamicPost = async (req, res) => {
         }
 
         // 更新动态帖子信息到数据库
-        const tableName = 'dynamic_posts';
         const updateFields = [];
         const values = [];
 
@@ -67,14 +70,14 @@ const updateDynamicPost = async (req, res) => {
 
         // 执行更新操作
         if (updateFields.length > 0) {
-            const sql = `UPDATE ${tableName} SET ${updateFields.join(', ')} WHERE dynamic_post_id = ? AND user_id = ?`;
+            const sql = `UPDATE ${DYNAMIC_POSTS} SET ${updateFields.join(', ')} WHERE dynamic_post_id = ? AND user_id = ?`;
             values.push(dynamic_post_id, user_id);
             await query(sql, values);
         }
 
         // 更新动态帖子的图片
         if (image_urls && image_urls.length > 0) {
-            await associateImagesWithData('dynamic_post_images', dynamic_post_id, image_urls, ['dynamic_post_id', 'image_url']);
+            await associateImagesWithData(DYNAMIC_POST_IMAGES, dynamic_post_id, image_urls, ['dynamic_post_id', 'image_url']);
         }
 
         // 返回成功消息
@@ -110,7 +113,7 @@ const publishTeamPost = async (req, res) => {
         } = req.body;
 
         // 查询用户存在
-        const { result: userResult } = await query(`SELECT * FROM users WHERE user_id = ?`, [user_id]);
+        const { result: userResult } = await query(`SELECT * FROM ${USERS} WHERE user_id = ?`, [user_id]);
         if (userResult.length === 0) {
             return res.status(400).json({ code: 400, msg: '用户不存在' });
         }
@@ -122,7 +125,7 @@ const publishTeamPost = async (req, res) => {
         }
 
         // 插入到数据库，返回post id
-        const postId = await insertDataToDatabase('team_activity_posts', {
+        const postId = await insertDataToDatabase(TEAM_ACTIVITY_POSTS, {
             user_id,
             title,
             description,
@@ -136,11 +139,11 @@ const publishTeamPost = async (req, res) => {
             theme_id,
         });
         // 通过 关联图片和帖子
-        await associateImagesWithData('team_activity_images', postId, image_urls, ['post_id', 'image_url'])
+        await associateImagesWithData(TEAM_ACTIVITY_IMAGES, postId, image_urls, ['post_id', 'image_url'])
 
         // 行程
         if (itinerary) {
-            await associateImagesWithData('itineraries', postId, [itinerary], ['post_id', 'image_url'])
+            await associateImagesWithData(ITINERARIES, postId, [itinerary], ['post_id', 'image_url'])
         }
         res.status(200).json({ code: 200, msg: '发布组队帖子成功' });
     } catch (error) {
@@ -167,7 +170,7 @@ const updateTeamPost = async (req, res) => {
         }
 
         // 检查帖子是否存在及权限
-        const { result: postResult } = await query(`SELECT * FROM team_activity_posts WHERE post_id = ? AND user_id = ?`, [post_id, user_id]);
+        const { result: postResult } = await query(`SELECT * FROM ${TEAM_ACTIVITY_POSTS} WHERE post_id = ? AND user_id = ?`, [post_id, user_id]);
         if (!postResult.length) {
             return res.status(400).json({ code: 400, msg: '帖子不存在或无权限' });
         }
@@ -201,7 +204,7 @@ const updateTeamPost = async (req, res) => {
         }
 
         // 构建更新语句
-        const tableName = 'team_activity_posts';
+        const tableName = TEAM_ACTIVITY_POSTS;
         const sql = `UPDATE ${tableName} SET ${updateFields.join(', ')} WHERE post_id = ?`;
         values.push(post_id);
 
@@ -210,10 +213,10 @@ const updateTeamPost = async (req, res) => {
 
         // 更新图片和行程
         if (image_urls && image_urls.length) {
-            await associateImagesWithData('team_activity_images', post_id, image_urls, ['post_id', 'image_url']);
+            await associateImagesWithData(TEAM_ACTIVITY_IMAGES, post_id, image_urls, ['post_id', 'image_url']);
         }
         if (itinerary) {
-            await associateImagesWithData('itineraries', post_id, [itinerary], ['post_id', 'image_url']);
+            await associateImagesWithData(ITINERARIES, post_id, [itinerary], ['post_id', 'image_url']);
         }
 
         res.status(200).json({ code: 200, msg: '更新组队帖子成功' });
@@ -243,85 +246,76 @@ async function getUserInfo(user_id) {
  * @param {*} res 
  * @returns 
  */
-const getDynamicPost = async (req, res) => {
+async function getDynamicPost(req, res) {
     const { dynamic_post_id } = req.params;
-    // table name 
 
-    const DYNAMIC_POSTS = 'dynamic_posts';
-    const DYNAMIC_POST_COMMENTS = "dynamic_post_comments";
-    const DYNAMIC_POST_IMGAES = "dynamic_post_images";
-    const DYNAMIC_POST_LIKES = "dynamic_post_likes";
+
     try {
-        const sql = `SELECT * FROM ${DYNAMIC_POSTS} WHERE dynamic_post_id = ?`;
-        const { result: postResult } = await query(sql, [dynamic_post_id]);
-        const post = postResult[0];
+        // 查询动态帖子信息
+        const postQuery = `SELECT dp.content, dp.user_id, dp.created_at,
+                                u.nickname, u.avatar_url
+                           FROM ${DYNAMIC_POSTS} dp
+                                LEFT JOIN ${USERS} u ON dp.user_id = u.user_id
+                          WHERE dp.dynamic_post_id = ?`;
 
-        if (!post) {
+        const { result: postRows } = await query(postQuery, [dynamic_post_id]);
+        if (!postRows.length) {
             return res.status(404).json({ code: 404, msg: '帖子不存在' });
         }
 
-        // 动态信息
-        const { content, user_id, created_at } = post;
+        const post = postRows[0];
+        const { content, user_id, created_at, nickname, avatar_url } = post;
 
-        // 用户信息
-        const { nickname, avatar_url } = await getUserInfo(user_id);
+        // 查询帖子图片信息
+        const imageQuery = `SELECT image_id, image_url
+                                FROM ${DYNAMIC_POST_IMAGES}
+                              WHERE dynamic_post_id = ?`;
 
-        // 获取tags
-        const userTagsinfo = await getUserTagsInfo([user_id]);
-        const tags = userTagsinfo.find(e => {
-            return e.user_id === user_id;
-        }).tags;
+        const { result: imageRows } = await query(imageQuery, [dynamic_post_id]);
+        const images = imageRows.map(image => ({
+            image_id: image.image_id,
+            image_url: image.image_url
+        }));
 
-        // 用户信息
-        const user_info = {
-            avatar: avatar_url,
-            nickname,
-            tags
-        }
+        // 查询评论
+        const commentQuery = `SELECT dpc.comment_id, dpc.user_id, dpc.content, dpc.created_at,
+                                    u.nickname, u.avatar_url
+                               FROM ${DYNAMIC_POST_COMMENTS} dpc
+                                    LEFT JOIN ${USERS} u ON dpc.user_id = u.user_id
+                              WHERE dpc.post_id = ?`;
 
-        // 图片
-        const sql3 = `SELECT * FROM ${DYNAMIC_POST_IMGAES} WHERE dynamic_post_id = ?`;
-        const { result: imageResult } = await query(sql3, [dynamic_post_id]);
-        let images = []
-        if (imageResult.length > 0) {
-            images = imageResult.map(e => {
-                return { image_id: e.image_id, image_url: e.image_url };
-            }); // {image_id, image_url}
-        }
-
-        // 评论
-        const sql4 = `SELECT * FROM ${DYNAMIC_POST_COMMENTS} WHERE post_id = ?`;
-        const { result: commentResult } = await query(sql4, [dynamic_post_id]);
-        // [{comment_id, user_id, content, created_at}...]
-
+        const { result: commentRows } = await query(commentQuery, [dynamic_post_id]);
         let comments = [];
-        if (commentResult.length > 0) {
-            comments = Promise.all(commentResult.map(async (cmoment) => {
-                const { nickname, avatar_url } = await getUserInfo(content.user_id);
+        if (commentRows.length > 0) {
+            comments = await Promise.all(commentRows.map(async (comment) => {
+                const { nickname, avatar_url } = await getUserInfo(comment.user_id);
                 return {
-                    ...cmoment,
+                    comment_id: comment.comment_id,
                     user_info: {
-                        user_id: cmoment.user_id,
+                        user_id: comment.user_id,
                         nickname,
                         avatar: avatar_url
-                    }
+                    },
+                    content: comment.content,
+                    created_at: comment.created_at
                 };
-            }))
+            }));
         }
 
-        // like userids
-        const sql5 = `SELECT * FROM ${DYNAMIC_POST_LIKES} WHERE post_id = ?`;
-        const { result: likeResult } = await query(sql5, [dynamic_post_id]);
-        const like_userIds = likeResult.map(e => e.user_id);
+        // 查询点赞用户
+        const likeQuery = `SELECT user_id FROM ${DYNAMIC_POST_LIKES} WHERE post_id = ?`;
+        const { result: likeRows } = await query(likeQuery, [dynamic_post_id]);
+        const like_userIds = likeRows.map(row => row.user_id);
 
         res.status(200).json({
             code: 200, msg: '查询帖子成功', data: {
                 post: {
+                    user_id,
                     dynamic_post_id,
                     content,
                     images,
                     created_at,
-                    user_info,
+                    user_info: { nickname, avatar: avatar_url },
                     comments,
                     like_userIds
                 }
@@ -334,6 +328,8 @@ const getDynamicPost = async (req, res) => {
 }
 
 
+
+
 /**
  * 查组队帖子
  * @param {*} req 
@@ -342,143 +338,192 @@ const getDynamicPost = async (req, res) => {
 const getTeamPost = async (req, res) => {
     const { post_id } = req.params;
 
-    if (!post_id) {
-        res.status(400).json({ code: 400, msg: '参数错误' });
-    }
-    // 查询组队帖子的信息
-    const TEAM_POSTS = 'team_activity_posts';
-    const TEAM_POST_IMAGES = 'team_activity_images';
-    const TEAM_POST_COMMENTS = 'team_activity_post_comments';
-    const TEAM_POST_LIKES = 'team_activity_post_likes';
-    const ITINERARIES = 'itineraries';
-    // const TEAM_THEME = 'team_activity_themes';
+    try {
+        if (!post_id) {
+            return res.status(400).json({ code: 400, msg: '参数错误' });
+        }
 
-    const sql = `SELECT * FROM ${TEAM_POSTS} WHERE  post_id = ?`;
-    const { result: postResult } = await query(sql, [post_id]);
-    const post = postResult[0];
 
-    if (!post) {
-        return res.status(404).json({ code: 404, msg: '帖子不存在' });
-    }
+        // 查询帖子信息
+        const postQuery = `SELECT * FROM ${TEAM_ACTIVITY_POSTS} WHERE post_id = ?`;
+        const { result: postResult } = await query(postQuery, [post_id]);
+        const post = postResult[0];
 
-    // 动态信息
-    const {
-        user_id,
-        title,
-        description,
-        start_location,
-        end_location,
-        duration_day,
-        team_size,
-        estimated_expense,
-        gender_requirement,
-        payment_method,
-        theme_id,
-        created_at
-    } = post;
+        if (!post) {
+            return res.status(404).json({ code: 404, msg: '帖子不存在' });
+        }
 
-    // 用户信息
-    const { nickname, avatar_url } = await getUserInfo(user_id);
+        // 获取用户信息
+        const { user_id, created_at } = post;
+        const { nickname, avatar_url } = await getUserInfo(user_id);
 
-    // 获取tags
-    const userTagsinfo = await getUserTagsInfo([user_id]);
-    const tags = userTagsinfo.find(e => {
-        return e.user_id === user_id;
-    }).tags;
+        // 获取帖子图片
+        const imagesQuery = `SELECT image_id, image_url FROM ${TEAM_ACTIVITY_IMAGES} WHERE post_id = ?`;
+        const { result: imagesResult } = await query(imagesQuery, [post_id]);
+        const images = imagesResult.map(image => ({
+            image_id: image.image_id,
+            image_url: image.image_url
+        }));
 
-    // 用户信息
-    const user_info = {
-        avatar: avatar_url,
-        nickname,
-        tags
-    }
+        // 获取行程图片
+        const itineraryQuery = `SELECT image_url FROM ${ITINERARIES} WHERE post_id = ?`;
+        const { result: itineraryResult } = await query(itineraryQuery, [post_id]);
+        const itinerary = itineraryResult.length > 0 ? itineraryResult[0].image_url : '';
 
-    // 获取帖子图片
-    const { result: imagesResult } = await query(`SELECT * FROM ${TEAM_POST_IMAGES} WHERE post_id = ?`, [post_id]);
-    let images = [];
-    if (imagesResult.length > 0) {
-        images = imagesResult.map(e => {
+        // 获取帖子评论
+        const commentsQuery = `SELECT * FROM ${TEAM_ACTIVITY_POST_COMMENTS} WHERE post_id = ?`;
+        const { result: commentResult } = await query(commentsQuery, [post_id]);
+        const comments = await Promise.all(commentResult.map(async (comment) => {
+            const { nickname, avatar_url } = await getUserInfo(comment.user_id);
             return {
-                image_id: e.image_id,
-                image_url: e.image_url,
-            }
-        });
-    }
-
-    // 行程图片
-    const { result: routeResult } = await query(`SELECT * FROM ${ITINERARIES} WHERE post_id = ?`, [post_id]);
-    let itinerary = '';
-    if (routeResult.length > 0) {
-        itinerary = routeResult[0].image_url;
-    }
-
-
-    // 获取帖子评论
-    const sql4 = `SELECT * FROM ${TEAM_POST_COMMENTS} WHERE post_id = ?`;
-    const { result: commentResult } = await query(sql4, [post_id]);
-    // [{comment_id, user_id, content, created_at}...]
-
-    let comments = [];
-    if (commentResult.length > 0) {
-        comments = Promise.all(commentResult.map(async (cmoment) => {
-            const { nickname, avatar_url } = await getUserInfo(content.user_id);
-            return {
-                ...cmoment,
+                ...comment,
                 user_info: {
-                    user_id: cmoment.user_id,
+                    user_id: comment.user_id,
                     nickname,
                     avatar: avatar_url
                 }
             };
-        }))
-    }
+        }));
 
-    // 获取帖子点赞
-    // like userids
-    const sql5 = `SELECT * FROM ${TEAM_POST_LIKES} WHERE post_id = ?`;
-    const { result: likeResult } = await query(sql5, [post_id]);
-    const like_userIds = likeResult.map(e => e.user_id);
-
-
-    try {
-
+        // 获取帖子点赞
+        const likesQuery = `SELECT user_id FROM ${TEAM_ACTIVITY_POST_LIKES} WHERE post_id = ?`;
+        const { result: likeResult } = await query(likesQuery, [post_id]);
+        const like_userIds = likeResult.map(row => row.user_id);
 
         res.status(200).json({
             code: 200, msg: '查询帖子成功', data: {
                 post: {
-                    post_id,
-                    title,
-                    description,
-                    start_location,
-                    end_location,
-                    duration_day,
-                    team_size,
-                    estimated_expense,
-                    gender_requirement,
-                    payment_method,
-                    theme_id,
+                    ...post,
+                    user_info: { nickname, avatar: avatar_url },
+                    images,
                     itinerary,
                     created_at,
-                    user_info,
-                    images,
                     like_userIds,
                     comments
                 }
             }
         });
     } catch (error) {
-
+        console.error('查询失败:', error);
+        res.status(500).json({ code: 500, msg: '查询失败' });
     }
 }
 
-// 查询分页帖子列表
 
+
+
+/**
+ * 查询动态帖子列表
+ * @param {Object} req 请求对象
+ * @param {Object} res 响应对象
+ * @param {number} req.body.page 当前页码，默认为1
+ * @param {number} req.body.limit 每页条目数，默认为10
+ * @param {number} req.body.user_id 当前用户的 ID，用于判断关注状态（可选）
+ * @param {Array<number>} req.body.follow_user_ids 当前用户关注的用户 ID 列表，用于过滤动态列表（可选）
+ */
 const getDynamicPostsForPage = async (req, res) => {
+    const { page = 1, limit = 10, user_id, follow_user_ids = [] } = req.body;
 
+    try {
+        let sql = `SELECT dp.*, u.nickname, u.avatar_url`;
 
+        // 如果指定了用户 ID，则添加判断用户是否关注了动态发布者的字段
+        if (user_id) {
+            sql += `, CASE WHEN EXISTS (
+                        SELECT * FROM ${USER_FOLLOWS} WHERE following_id = ? AND follower_id = dp.user_id
+                    ) THEN 1 ELSE 0 END as isFollowed`;
+        }
+
+        sql += ` FROM ${DYNAMIC_POSTS} dp LEFT JOIN ${USERS} u ON dp.user_id = u.user_id`;
+
+        // 如果指定了关注用户 ID，则只查询关注用户的动态
+        if (follow_user_ids.length > 0) {
+            sql += ` WHERE dp.user_id IN (${follow_user_ids.join(',')})`;
+        }
+
+        // 添加分页逻辑
+        const offset = (page - 1) * limit;
+        sql += ` ORDER BY dp.created_at DESC LIMIT ?, ?`;
+
+        const params = user_id ? [user_id, offset, parseInt(limit)] : [offset, parseInt(limit)];
+        const { result: postsResult } = await query(sql, params);
+
+        // 查询帖子总数
+        const totalPostsQuery = `SELECT COUNT(*) as total FROM ${DYNAMIC_POSTS}`;
+        const { result: totalPostsResult } = await query(totalPostsQuery);
+        const totalPosts = totalPostsResult[0].total;
+
+        res.status(200).json({
+            code: 200,
+            msg: '查询动态帖子列表成功',
+            data: {
+                posts: postsResult,
+                pagination: {
+                    total_posts: totalPosts,
+                    total_pages: Math.ceil(totalPosts / limit),
+                    current_page: parseInt(page)
+                }
+            }
+        });
+    } catch (error) {
+        console.error('查询动态帖子列表失败:', error.message);
+        res.status(500).json({ code: 500, msg: '查询动态帖子列表失败' + error.message });
+    }
 }
-const getTeamPostsForPage = async (req, res) => {
 
+
+/**
+ * 查询组队帖子列表
+ * @param {Object} req 请求对象
+ * @param {Object} res 响应对象
+ * @param {number} req.query.page 当前页码，默认为1
+ * @param {number} req.query.limit 每页条目数，默认为10
+ * @param {number} req.query.theme_id 主题 ID，用于分类查询（可选）
+ */
+const getTeamPostsForPage = async (req, res) => {
+    const { page = 1, limit = 10, theme_id } = req.body;
+
+    try {
+        let sql = `SELECT * FROM ${TEAM_ACTIVITY_POSTS}`;
+
+        // 如果指定了主题 ID，则添加条件
+        if (theme_id) {
+            sql += ` WHERE theme_id = ?`;
+        }
+
+        // 添加分页逻辑
+        const offset = (page - 1) * limit;
+        sql += ` LIMIT ?, ?`;
+
+        const params = theme_id ? [theme_id, offset, parseInt(limit)] : [offset, parseInt(limit)];
+        const { result: postsResult } = await query(sql, params);
+
+        // 查询帖子总数
+        let totalPostsQuery = `SELECT COUNT(*) as total FROM ${TEAM_ACTIVITY_POSTS}`;
+        let totalPostsParams = [];
+        if (theme_id) {
+            totalPostsQuery += ` WHERE theme_id = ?`;
+            totalPostsParams = [theme_id];
+        }
+        const { result: totalPostsResult } = await query(totalPostsQuery, totalPostsParams);
+        const totalPosts = totalPostsResult[0].total;
+
+        res.status(200).json({
+            code: 200,
+            msg: '查询组队帖子列表成功',
+            data: {
+                posts: postsResult,
+                pagination: {
+                    total_posts: totalPosts,
+                    total_pages: Math.ceil(totalPosts / limit),
+                    current_page: parseInt(page)
+                }
+            }
+        });
+    } catch (error) {
+        console.error('查询组队帖子列表失败:', error);
+        res.status(500).json({ code: 500, msg: '查询组队帖子列表失败' + error.message });
+    }
 }
 
 
@@ -487,11 +532,17 @@ const getTeamPostsForPage = async (req, res) => {
 
 const deleteDynamicPost = async (req, res) => {
 
-
+    res.status(500).json({
+        code: 500,
+        msg: '删除帖子失败'
+    })
 }
 
 const deleteTeamPost = async (req, res) => {
-
+    res.status(500).json({
+        code: 500,
+        msg: '删除帖子失败'
+    })
 }
 
 
