@@ -1,6 +1,6 @@
 var express = require('express');
 const { query } = require('../db');
-const { getUserInfo, getFollowers, getFans, updateUserInfo, joinTeam, followOrUnfollowUser } = require('../control/user');
+const { getUserInfo, getFollowers, getFans, updateUserInfo, joinTeam, followOrUnfollowUser, getMyPosts } = require('../control/user');
 var router = express.Router();
 
 
@@ -48,6 +48,9 @@ router.post('/update', updateUserInfo)
 
 // 加入小队
 router.post('/joinTeam/', joinTeam)
+
+// 获取我的发布
+router.post('/getMyposts', getMyPosts)
 
 
 module.exports = router;

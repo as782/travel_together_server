@@ -1,4 +1,4 @@
-const { TEAM_ACTIVITY_PARTICIPANTS, TEAM_ACTIVITY_POSTS, USERS, USER_FOLLOWS } = require('../../db/config');
+const { TEAM_ACTIVITY_PARTICIPANTS, TEAM_ACTIVITY_POSTS, USERS, USER_FOLLOWS, DYNAMIC_POSTS, DYNAMIC_POST_IMAGES, TEAM_ACTIVITY_IMAGES } = require('../../db/config');
 const { query } = require('../../db/index');
 const getUserTagsInfo = require('../utils/getUserTags');
 const isExistINTable = require('../utils/isExistUserAndPost');
@@ -319,7 +319,64 @@ const joinTeam = async (req, res) => {
     }
 }
 
+/**
+ * 获取我的发布
+ * @param {Object} req 请求对象
+ * @param {Object} res 响应对象
+ * @param {number} req.query.page 请求页码
+ * @param {number} req.query.limit 每页大小
+ * @param {number} req.query.user_id 用户ID
+ */
+const getMyPosts = async (req, res) => {
+    try {
+        const { user_id, page = 1, limit = 10 } = req.body;
+        console.log('user_id:', user_id);
 
+        // 计算分页偏移量
+        const offset = (page - 1) * limit;
+
+        // 查询组队帖子及其相关图片
+        const teamPostsSql = `
+            SELECT t.*, GROUP_CONCAT(ti.image_url) AS images
+            FROM ${TEAM_ACTIVITY_POSTS} t
+            LEFT JOIN ${TEAM_ACTIVITY_IMAGES} ti ON t.post_id = ti.post_id
+            WHERE t.user_id = ?
+            GROUP BY t.post_id
+            ORDER BY t.created_at ASC
+            LIMIT ? OFFSET ?`;
+        const { result: teamPosts } = await query(teamPostsSql, [user_id, limit, offset]);
+
+        // 查询动态帖子及其相关图片
+        const dynamicPostsSql = `
+            SELECT d.*, GROUP_CONCAT(di.image_url) AS images
+            FROM ${DYNAMIC_POSTS} d
+            LEFT JOIN ${DYNAMIC_POST_IMAGES} di ON d.dynamic_post_id = di.dynamic_post_id
+            WHERE d.user_id = ?
+            GROUP BY d.dynamic_post_id
+            ORDER BY d.created_at ASC
+            LIMIT ? OFFSET ?`;
+        const { result: dynamicPosts } = await query(dynamicPostsSql, [user_id, limit, offset]);
+
+        // 处理帖子图片
+        teamPosts.forEach(post => {
+            post.images = post.images ? post.images.split(',') : [];
+        });
+        dynamicPosts.forEach(post => {
+            post.images = post.images ? post.images.split(',') : [];
+        });
+
+        // 合并结果并返回
+        const myPosts = [...teamPosts, ...dynamicPosts];
+        res.status(200).json({
+            code: 200, msg: '获取我的发布成功', data: {
+                posts: myPosts
+            }
+        });
+    } catch (error) {
+        console.error('获取我的发布失败:', error);
+        res.status(500).json({ code: 500, msg: '获取我的发布失败' });
+    }
+}
 
 
 module.exports = {
@@ -328,5 +385,6 @@ module.exports = {
     getFans,
     updateUserInfo,
     joinTeam,
-    followOrUnfollowUser
+    followOrUnfollowUser,
+    getMyPosts
 }
