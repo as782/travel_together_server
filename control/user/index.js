@@ -141,17 +141,17 @@ const getUserInfo = async function (req, res, next) {
     let sql = 'SELECT * FROM users WHERE user_id = ?';
     try {
         let { result: userResult } = await query(sql, [userId]);
+        if (!userResult.length) {
+            return res.status(404).json({ code: 404, msg: '用户不存在' });
+        }
+        const user_id = userResult[0].user_id;
+        // 每个用户的标签信息
+        const userTagsInfoList = await getUserTagsInfo([user_id]);
+        const tags = userTagsInfoList.find(e => {
+            return e.user_id === user_id;
+        }).tags;
 
-        // 查询用户关联的标签ID
-        const { result: userTagResult } = await query('SELECT tag_id FROM user_tags WHERE user_id = ?', [userResult[0].user_id]);
-
-        // 获取用户关联的所有标签信息
-        const userTagIds = userTagResult.map(tag => tag.tag_id);
-
-        // 查询与用户关联的所有标签信息
-        const { result: userTagsInfo } = await query('SELECT * FROM tags WHERE tag_id IN (?)', [userTagIds]);
-
-        const { user_id, avatar_url, nickname, gender, bio, birthday, region_name, region_code, contact_phone, contact_email, created_at } = userResult[0];
+        const {avatar_url, nickname, gender, bio, birthday, region_name, region_code, contact_phone, contact_email, created_at } = userResult[0];
         const user_info = {
             user_id,
             username: userResult[0].username,
@@ -160,7 +160,7 @@ const getUserInfo = async function (req, res, next) {
             gender,
             bio,
             birthday,
-            tags: [...userTagsInfo.map(tag => tag.tag_name)],
+            tags:tags,
             address: {
                 name: region_name,
                 code: region_code
