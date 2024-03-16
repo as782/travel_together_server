@@ -12,10 +12,10 @@ const isExistINTable = require("../utils/isExistUserAndPost");
  */
 const postComment = async (req, res, tableName) => {
     const { user_id, post_id, content } = req.body;
-
+    const id_key = tableName === DYNAMIC_POST_COMMENTS ? 'dynamic_post_id' : 'post_id';
     try {
         // 插入评论记录到数据库
-        const insertCommentSql = `INSERT INTO ${tableName} (user_id, post_id, content) VALUES (?, ?, ?)`;
+        const insertCommentSql = `INSERT INTO ${tableName} (user_id, ${id_key}, content) VALUES (?, ?, ?)`;
         await query(insertCommentSql, [user_id, post_id, content]);
 
         res.status(200).json({ code: 200, msg: '评论发表成功' });
@@ -143,7 +143,7 @@ const getPostComments = async (req, res) => {
     const { post_id } = req.params;
 
     try {
-        const sql = `SELECT * FROM ${DYNAMIC_POST_COMMENTS} WHERE post_id = ?`;
+        const sql = `SELECT * FROM ${DYNAMIC_POST_COMMENTS} WHERE dynamic_post_id = ?`;
         const { result: comments } = await query(sql, [post_id]);
 
         res.status(200).json({ code: 200, msg: '查询帖子评论成功', data: comments });

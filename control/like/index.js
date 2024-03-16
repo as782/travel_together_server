@@ -12,21 +12,21 @@ const isExistINTable = require("../utils/isExistUserAndPost");
  */
 const toggleLikePost = async (req, res, tableName) => {
     const { user_id, post_id } = req.body;
-
+    const id_key = tableName === DYNAMIC_POST_LIKES ? 'dynamic_post_id' : 'post_id';
     try {
         // 检查用户是否已经点赞过该帖子
-        const likeCheckSql = `SELECT * FROM ${tableName} WHERE user_id = ? AND post_id = ?`;
+        const likeCheckSql = `SELECT * FROM ${tableName} WHERE user_id = ? AND ${id_key} = ?`;
         const { result: existingLike } = await query(likeCheckSql, [user_id, post_id]);
 
         if (existingLike.length > 0) {
             // 如果存在点赞记录，则执行取消点赞操作
-            const deleteLikeSql = `DELETE FROM ${tableName} WHERE user_id = ? AND post_id = ?`;
+            const deleteLikeSql = `DELETE FROM ${tableName} WHERE user_id = ? AND ${id_key} = ?`;
             await query(deleteLikeSql, [user_id, post_id]);
 
             res.status(200).json({ code: 200, msg: '取消点赞成功' });
         } else {
             // 如果不存在点赞记录，则执行点赞操作
-            const insertLikeSql = `INSERT INTO ${tableName} (user_id, post_id) VALUES (?, ?)`;
+            const insertLikeSql = `INSERT INTO ${tableName} (user_id, ${id_key}) VALUES (?, ?)`;
             await query(insertLikeSql, [user_id, post_id]);
 
             res.status(200).json({ code: 200, msg: '点赞成功' });

@@ -1,8 +1,42 @@
-const { TEAM_ACTIVITY_PARTICIPANTS, TEAM_ACTIVITY_POSTS, USERS } = require('../../db/config');
+const { TEAM_ACTIVITY_PARTICIPANTS, TEAM_ACTIVITY_POSTS, USERS, USER_FOLLOWS } = require('../../db/config');
 const { query } = require('../../db/index');
 const getUserTagsInfo = require('../utils/getUserTags');
 const isExistINTable = require('../utils/isExistUserAndPost');
 // API handle function
+
+/**
+ * 关注或取消关注用户
+ * @param {Object} req 请求对象
+ * @param {Object} res 响应对象
+ * @param {string} action 动作，1 表示关注，0 表示取消关注
+ */
+const followOrUnfollowUser = async (req, res) => {
+    const { follower_id, following_id, action } = req.body;
+
+    try {
+        let sql, message;
+        if (action === 1) {
+            sql = `INSERT INTO ${USER_FOLLOWS} (follower_id, following_id) VALUES (?, ?)`;
+            message = '关注成功';
+        } else if (action === 0) {
+            sql = `DELETE FROM ${USER_FOLLOWS} WHERE follower_id = ? AND following_id = ?`;
+            message = '取消关注成功';
+        } else {
+            return res.status(400).json({ code: 400, msg: '无效的操作' });
+        }
+
+        await query(sql, [follower_id, following_id]);
+        res.status(200).json({ code: 200, msg: message });
+    } catch (error) {
+        console.error(`${action === 'follow' ? '关注' : '取消关注'}用户失败:`, error);
+        res.status(500).json({ code: 500, msg: `${action === 'follow' ? '关注' : '取消关注'}用户失败` });
+    }
+}
+
+module.exports = {
+    followOrUnfollowUser
+};
+
 
 const getFollowers = async (req, res) => {
     const userId = req.params.user_id;
@@ -14,9 +48,16 @@ const getFollowers = async (req, res) => {
         const { result: followResult } = await query('SELECT * FROM user_follows WHERE follower_id = ?', [userId]);
 
         const followUserIds = followResult.map(follow => follow.following_id);
+
+        if (!followUserIds.length) {
+            return res.status(200).json({
+                code: 200, msg: '暂无关注用户', data: {
+                    follows: []
+                }
+            });
+        }
         // 关注用户的info
         const { result: followUserResults } = await query('SELECT * FROM users WHERE user_id IN (?)', [followUserIds]);
-
         // 每个用户的标签信息
         const followersUserTagsInfoList = await getUserTagsInfo(followUserIds);
 
@@ -60,7 +101,7 @@ const getFollowers = async (req, res) => {
             }
         )
     } catch (error) {
-
+        console.log('关注列表信息获取失败', error);
         res.status(500).json({
             code: 500,
             msg: '关注列表信息获取失败' + error,
@@ -79,6 +120,13 @@ const getFans = async (req, res) => {
         const { result: fansResult } = await query('SELECT * FROM user_follows WHERE following_id = ?', [userId]);
         const fansUserIds = fansResult.map(follow => follow.follower_id);
 
+        if (!fansUserIds.length) {
+            return res.status(200).json({
+                code: 200, msg: '暂无粉丝', data: {
+                    fans: []
+                }
+            });
+        }
         // 关注用户的info
         const { result: fansUserResult } = await query('SELECT * FROM users WHERE user_id IN (?)', [fansUserIds]);
 
@@ -91,7 +139,6 @@ const getFans = async (req, res) => {
             const tags = fansUserTagsInfoList.find(e => {
                 return e.user_id === user_id;
             }).tags;
-            console.log(tags);
             const user_info = {
                 user_id,
                 username,
@@ -151,7 +198,7 @@ const getUserInfo = async function (req, res, next) {
             return e.user_id === user_id;
         }).tags;
 
-        const {avatar_url, nickname, gender, bio, birthday, region_name, region_code, contact_phone, contact_email, created_at } = userResult[0];
+        const { avatar_url, nickname, gender, bio, birthday, region_name, region_code, contact_phone, contact_email, created_at } = userResult[0];
         const user_info = {
             user_id,
             username: userResult[0].username,
@@ -160,7 +207,7 @@ const getUserInfo = async function (req, res, next) {
             gender,
             bio,
             birthday,
-            tags:tags,
+            tags: tags,
             address: {
                 name: region_name,
                 code: region_code
@@ -280,5 +327,6 @@ module.exports = {
     getFollowers,
     getFans,
     updateUserInfo,
-    joinTeam
+    joinTeam,
+    followOrUnfollowUser
 }

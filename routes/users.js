@@ -1,6 +1,6 @@
 var express = require('express');
 const { query } = require('../db');
-const { getUserInfo, getFollowers, getFans, updateUserInfo, joinTeam } = require('../control/user');
+const { getUserInfo, getFollowers, getFans, updateUserInfo, joinTeam, followOrUnfollowUser } = require('../control/user');
 var router = express.Router();
 
 
@@ -34,11 +34,13 @@ var router = express.Router();
 router.get('/getUserInfo/:id',getUserInfo);
 
 // 获取关注用户列表
-router.get('/follows/:user_id',getFollowers)
+router.get('/getFollows/:user_id',getFollowers)
 
 // 获取粉丝用户列表
-router.get('/fans/:user_id',getFans)
+router.get('/getFans/:user_id',getFans)
 
+// 关注或取消关注
+router.post('/follow', followOrUnfollowUser)
 
 // 更新用户信息
 router.post('/update', updateUserInfo)

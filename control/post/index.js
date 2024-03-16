@@ -283,7 +283,7 @@ async function getDynamicPost(req, res) {
                                     u.nickname, u.avatar_url
                                FROM ${DYNAMIC_POST_COMMENTS} dpc
                                     LEFT JOIN ${USERS} u ON dpc.user_id = u.user_id
-                              WHERE dpc.post_id = ?`;
+                              WHERE dpc.dynamic_post_id = ?`;
 
         const { result: commentRows } = await query(commentQuery, [dynamic_post_id]);
         let comments = [];
@@ -304,7 +304,7 @@ async function getDynamicPost(req, res) {
         }
 
         // 查询点赞用户
-        const likeQuery = `SELECT user_id FROM ${DYNAMIC_POST_LIKES} WHERE post_id = ?`;
+        const likeQuery = `SELECT user_id FROM ${DYNAMIC_POST_LIKES} WHERE dynamic_post_id = ?`;
         const { result: likeRows } = await query(likeQuery, [dynamic_post_id]);
         const like_userIds = likeRows.map(row => row.user_id);
 
@@ -560,7 +560,7 @@ const getTeamMembers = async (req, res) => {
         // 检验是否存在
         const isExist = await isExistINTable(TEAM_ACTIVITY_POSTS, { post_id: post_id })
 
-        if (isExist) {
+        if (!isExist) {
             return res.status(400).json({ code: 400, msg: '帖子不存在' });
         }
 
