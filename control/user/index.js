@@ -320,17 +320,90 @@ const joinTeam = async (req, res) => {
 }
 
 /**
+ * 获取用户加入的小队信息
+ * @param {*} req 
+ * @param {*} res 
+ * @param {number} req.body.page 请求页码
+ * @param {number} req.body.limit 每页大小
+ * @param {number} req.body.user_id 用户ID
+ */
+const getUserTeams = async (req, res) => {
+    const { user_id, page = 1, limit = 10 } = req.body;
+    try {
+        // 查询总数
+        const totalTeamsCountSql = `
+            SELECT COUNT(*) AS count
+            FROM ${TEAM_ACTIVITY_PARTICIPANTS}
+            WHERE user_id = ?`;
+        const { result: totalTeamsCount } = (await query(totalTeamsCountSql, [user_id]));
+
+        // 计算分页偏移量
+        const offset = (page - 1) * limit;
+
+        // 查询小队信息及其相关图片
+        const teamsSql = `
+            SELECT t.*, GROUP_CONCAT(ti.image_url) AS images
+            FROM ${TEAM_ACTIVITY_POSTS} t
+            LEFT JOIN ${TEAM_ACTIVITY_IMAGES} ti ON t.post_id = ti.post_id
+            WHERE t.post_id IN (
+                SELECT post_id
+                FROM ${TEAM_ACTIVITY_PARTICIPANTS}
+                WHERE user_id = ?
+            )
+            GROUP BY t.post_id
+            ORDER BY t.created_at ASC
+            LIMIT ? OFFSET ?`;
+        const { result: userTeams } = await query(teamsSql, [user_id, limit, offset]);
+
+        // 处理帖子图片
+        userTeams.forEach(team => {
+            team.images = team.images ? team.images.split(',') : [];
+        });
+
+        res.status(200).json({
+            code: 200,
+            data: {
+                pagination: {
+                    total_teams: totalTeamsCount[0].count,
+                    total_pages: Math.ceil(totalTeamsCount[0].count / limit),
+                    current_page: parseInt(page)
+                },
+                teams: userTeams
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching user teams:', error);
+        res.status(500).json({ code: 500, msg: 'Failed to fetch user teams' });
+    }
+};
+
+
+/**
  * 获取我的发布
  * @param {Object} req 请求对象
  * @param {Object} res 响应对象
- * @param {number} req.query.page 请求页码
- * @param {number} req.query.limit 每页大小
- * @param {number} req.query.user_id 用户ID
+ * @param {number} req.body.page 请求页码
+ * @param {number} req.body.limit 每页大小
+ * @param {number} req.body.user_id 用户ID
  */
 const getMyPosts = async (req, res) => {
     try {
         const { user_id, page = 1, limit = 10 } = req.body;
-        console.log('user_id:', user_id);
+
+        // 查询总数
+        const teamPostsCountSql = `
+            SELECT COUNT(*) AS count
+            FROM ${TEAM_ACTIVITY_POSTS}
+            WHERE user_id = ?`;
+        const dynamicPostsCountSql = `
+            SELECT COUNT(*) AS count
+            FROM ${DYNAMIC_POSTS}
+            WHERE user_id = ?`;
+
+        const { result: teamPostsCount } = await query(teamPostsCountSql, [user_id]);
+        const { result: dynamicPostsCount } = await query(dynamicPostsCountSql, [user_id]);
+
+        const totalCount = teamPostsCount[0].count + dynamicPostsCount[0].count;
 
         // 计算分页偏移量
         const offset = (page - 1) * limit;
@@ -369,6 +442,11 @@ const getMyPosts = async (req, res) => {
         const myPosts = [...teamPosts, ...dynamicPosts];
         res.status(200).json({
             code: 200, msg: '获取我的发布成功', data: {
+                pagination: {
+                    total_posts: totalCount,
+                    total_pages: Math.ceil(totalCount / limit),
+                    current_page: parseInt(page)
+                },
                 posts: myPosts
             }
         });
@@ -386,5 +464,6 @@ module.exports = {
     updateUserInfo,
     joinTeam,
     followOrUnfollowUser,
-    getMyPosts
+    getMyPosts,
+    getUserTeams
 }
