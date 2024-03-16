@@ -1,6 +1,7 @@
 const { USERS, DYNAMIC_POSTS, DYNAMIC_POST_IMAGES, TEAM_ACTIVITY_POSTS, TEAM_ACTIVITY_IMAGES, ITINERARIES, DYNAMIC_POST_COMMENTS, DYNAMIC_POST_LIKES, TEAM_ACTIVITY_POST_COMMENTS, TEAM_ACTIVITY_POST_LIKES, USER_FOLLOWS, TEAM_ACTIVITY_PARTICIPANTS } = require('../../db/config');
 const { query } = require('../../db/index');
 const getUserTagsInfo = require('../utils/getUserTags');
+const isExistINTable = require('../utils/isExistUserAndPost');
 const { insertDataToDatabase, associateImagesWithData } = require('./postRelativeImage');
 
 
@@ -557,9 +558,9 @@ const getTeamMembers = async (req, res) => {
 
     try {
         // 检验是否存在
-        const queryPost = `SELECT * FROM ${TEAM_ACTIVITY_POSTS} WHERE post_id = ?`;
-        const { result: postResult } = await query(queryPost, [post_id]);
-        if (postResult.length === 0) {
+        const isExist = await isExistINTable(TEAM_ACTIVITY_POSTS, { post_id: post_id })
+
+        if (isExist) {
             return res.status(400).json({ code: 400, msg: '帖子不存在' });
         }
 

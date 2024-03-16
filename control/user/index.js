@@ -1,6 +1,7 @@
 const { TEAM_ACTIVITY_PARTICIPANTS, TEAM_ACTIVITY_POSTS, USERS } = require('../../db/config');
 const { query } = require('../../db/index');
-const getUserTagsInfo = require('../utils/getUserTags')
+const getUserTagsInfo = require('../utils/getUserTags');
+const isExistINTable = require('../utils/isExistUserAndPost');
 // API handle function
 
 const getFollowers = async (req, res) => {
@@ -236,23 +237,21 @@ const updateUserInfo = async (req, res, next) => {
  */
 const joinTeam = async (req, res) => {
     const { user_id, post_id } = req.body;
-    
+
     try {
-          // 检查用户和帖子是否存在
-          const userCheckSql = `SELECT * FROM ${USERS} WHERE user_id = ?`;
-          const postCheckSql = `SELECT * FROM ${TEAM_ACTIVITY_POSTS} WHERE post_id = ?`;
-          const [userResult, postResult] = await Promise.all([
-              query(userCheckSql, [user_id]),
-              query(postCheckSql, [post_id])
-          ]);
-  
-          if (userResult.result.length === 0) {
-              return res.status(400).json({ code: 400, msg: '用户不存在' });
-          }
-  
-          if (postResult.result.length === 0) {
-              return res.status(400).json({ code: 400, msg: '组队帖子不存在' });
-          }
+        // 检查用户和帖子是否存在
+        const [userResult, postResult] = await Promise.all([
+            isExistINTable(USERS, { user_id }),
+            isExistINTable(TEAM_ACTIVITY_POSTS, { post_id })
+        ]);
+
+        if (!userResult) {
+            return res.status(400).json({ code: 400, msg: '用户不存在' });
+        }
+
+        if (!postResult) {
+            return res.status(400).json({ code: 400, msg: '组队帖子不存在' });
+        }
 
         // 检查用户是否已经加入小队
         const joinCheckSql = `SELECT * FROM ${TEAM_ACTIVITY_PARTICIPANTS} WHERE user_id = ? AND post_id = ?`;
