@@ -1,5 +1,6 @@
 const { query } = require("../../db/index");
-const { DYNAMIC_POST_COMMENTS, TEAM_ACTIVITY_POST_COMMENTS } = require("../../db/config");
+const { DYNAMIC_POST_COMMENTS, TEAM_ACTIVITY_POST_COMMENTS, DYNAMIC_POSTS, USERS, TEAM_ACTIVITY_POSTS } = require("../../db/config");
+const isExistINTable = require("../utils/isExistUserAndPost");
 /**
  * 发表评论
  * @param {Object} req 请求对象
@@ -29,22 +30,32 @@ const postComment = async (req, res, tableName) => {
  * @param {Object} req 请求对象
  * @param {Object} res 响应对象
  * @param {number} req.body.comment_id 评论 ID
+ * @param {number} req.body.user_id 用户 ID
  * @param {string} tableName 数据库表名
  */
 const deleteComment = async (req, res, tableName) => {
-    const { comment_id } = req.body;
+    const { comment_id, user_id } = req.body;
 
     try {
-        // 删除评论记录
+        // 检查评论是否存在且是否属于当前用户
+        const commentCheckSql = `SELECT * FROM ${tableName} WHERE comment_id = ? AND user_id = ?`;
+        const { result: existingComment } = await query(commentCheckSql, [comment_id, user_id]);
+
+        if (existingComment.length === 0) {
+            return res.status(404).json({ code: 404, msg: '评论不存在或您无权删除该评论' });
+        }
+
+        // 删除评论
         const deleteCommentSql = `DELETE FROM ${tableName} WHERE comment_id = ?`;
         await query(deleteCommentSql, [comment_id]);
 
-        res.status(200).json({ code: 200, msg: '删除评论成功' });
+        res.status(200).json({ code: 200, msg: '评论删除成功' });
     } catch (error) {
         console.error(`删除评论失败:`, error);
         res.status(500).json({ code: 500, msg: '删除评论失败' });
     }
 }
+
 
 /**
  * 发表动态帖子评论
@@ -55,6 +66,20 @@ const deleteComment = async (req, res, tableName) => {
  * @param {string} req.body.content 评论内容
  */
 const postDynamicPostComment = async (req, res) => {
+    const { user_id, post_id } = req.body;
+    // 检查用户和帖子是否存在
+    const [userResult, postResult] = await Promise.all([
+        isExistINTable(USERS, { user_id }),
+        isExistINTable(DYNAMIC_POSTS, { dynamic_post_id: post_id })
+    ]);
+
+    if (!userResult) {
+        return res.status(400).json({ code: 400, msg: '用户不存在' });
+    }
+
+    if (!postResult) {
+        return res.status(400).json({ code: 400, msg: '点赞帖子不存在' });
+    }
     await postComment(req, res, DYNAMIC_POST_COMMENTS);
 }
 
@@ -67,6 +92,20 @@ const postDynamicPostComment = async (req, res) => {
  * @param {string} req.body.content 评论内容
  */
 const postTeamPostComment = async (req, res) => {
+    const { user_id, post_id } = req.body;
+    // 检查用户和帖子是否存在
+    const [userResult, postResult] = await Promise.all([
+        isExistINTable(USERS, { user_id }),
+        isExistINTable(TEAM_ACTIVITY_POSTS, { post_id })
+    ]);
+
+    if (!userResult) {
+        return res.status(400).json({ code: 400, msg: '用户不存在' });
+    }
+
+    if (!postResult) {
+        return res.status(400).json({ code: 400, msg: '帖子不存在' });
+    }
     await postComment(req, res, TEAM_ACTIVITY_POST_COMMENTS);
 }
 
@@ -75,6 +114,7 @@ const postTeamPostComment = async (req, res) => {
  * @param {Object} req 请求对象
  * @param {Object} res 响应对象
  * @param {number} req.body.comment_id 评论 ID
+ * @param {number} req.body.user_id 用户 ID
  */
 const deleteDynamicPostComment = async (req, res) => {
     await deleteComment(req, res, DYNAMIC_POST_COMMENTS);
@@ -85,6 +125,7 @@ const deleteDynamicPostComment = async (req, res) => {
  * @param {Object} req 请求对象
  * @param {Object} res 响应对象
  * @param {number} req.body.comment_id 评论 ID
+ * @param {number} req.body.user_id 用户 ID
  */
 const deleteTeamPostComment = async (req, res) => {
     await deleteComment(req, res, TEAM_ACTIVITY_POST_COMMENTS);
@@ -96,10 +137,10 @@ const deleteTeamPostComment = async (req, res) => {
  * 查询帖子的评论
  * @param {Object} req 请求对象
  * @param {Object} res 响应对象
- * @param {number} req.query.post_id 帖子 ID
+ * @param {number} req.params.post_id 帖子 ID
  */
 const getPostComments = async (req, res) => {
-    const { post_id } = req.query;
+    const { post_id } = req.params;
 
     try {
         const sql = `SELECT * FROM ${DYNAMIC_POST_COMMENTS} WHERE post_id = ?`;
@@ -116,10 +157,10 @@ const getPostComments = async (req, res) => {
  * 查询用户的评论
  * @param {Object} req 请求对象
  * @param {Object} res 响应对象
- * @param {number} req.query.user_id 用户 ID
+ * @param {number} req.params.user_id 用户 ID
  */
 const getUserComments = async (req, res) => {
-    const { user_id } = req.query;
+    const { user_id } = req.params;
 
     try {
         const sql = `SELECT * FROM ${DYNAMIC_POST_COMMENTS} WHERE user_id = ?`;
