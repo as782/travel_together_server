@@ -1,6 +1,6 @@
 var express = require('express');
 const { publishDynamicPost, updateDynamicPost, deleteDynamicPost, getDynamicPost, getDynamicPostsForPage,
-    publishTeamPost, updateTeamPost, deleteTeamPost, getTeamPost, getTeamPostsForPage,
+    publishTeamPost, updateTeamPost, deleteTeamPost, getTeamPost, getTeamPostsForPage, getTeamMembers,
 } = require('../control/post/index');
 var router = express.Router();
 
@@ -24,4 +24,8 @@ router.get('/getTeamPost/:post_id', getTeamPost);
 // 分页查询
 router.post('/getDynamicPostsForPage', getDynamicPostsForPage);
 router.post('/getTeamPostsForPage', getTeamPostsForPage);
+
+
+// 查询加入组队的用户列表
+router.get('/getJoinTeamUsers/:post_id', getTeamMembers)
 module.exports = router;

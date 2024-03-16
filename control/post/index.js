@@ -1,4 +1,4 @@
-const { USERS, DYNAMIC_POSTS, DYNAMIC_POST_IMAGES, TEAM_ACTIVITY_POSTS, TEAM_ACTIVITY_IMAGES, ITINERARIES, DYNAMIC_POST_COMMENTS, DYNAMIC_POST_LIKES, TEAM_ACTIVITY_POST_COMMENTS, TEAM_ACTIVITY_POST_LIKES, USER_FOLLOWS } = require('../../db/config');
+const { USERS, DYNAMIC_POSTS, DYNAMIC_POST_IMAGES, TEAM_ACTIVITY_POSTS, TEAM_ACTIVITY_IMAGES, ITINERARIES, DYNAMIC_POST_COMMENTS, DYNAMIC_POST_LIKES, TEAM_ACTIVITY_POST_COMMENTS, TEAM_ACTIVITY_POST_LIKES, USER_FOLLOWS, TEAM_ACTIVITY_PARTICIPANTS } = require('../../db/config');
 const { query } = require('../../db/index');
 const getUserTagsInfo = require('../utils/getUserTags');
 const { insertDataToDatabase, associateImagesWithData } = require('./postRelativeImage');
@@ -546,7 +546,41 @@ const deleteTeamPost = async (req, res) => {
 }
 
 
+/**
+ * 获取已加入组队的用户列表
+ * @param {Object} req 请求对象
+ * @param {Object} res 响应对象
+ * @param {number} req.params.post_id 组队帖子 ID
+ */
+const getTeamMembers = async (req, res) => {
+    const { post_id } = req.params;
+
+    try {
+        // 检验是否存在
+        const queryPost = `SELECT * FROM ${TEAM_ACTIVITY_POSTS} WHERE post_id = ?`;
+        const { result: postResult } = await query(queryPost, [post_id]);
+        if (postResult.length === 0) {
+            return res.status(400).json({ code: 400, msg: '帖子不存在' });
+        }
+
+        // 查询已加入小队的用户列表
+        const sql = `
+            SELECT u.user_id, u.nickname, u.avatar_url, p.joined_at
+            FROM ${USERS} u
+            INNER JOIN ${TEAM_ACTIVITY_PARTICIPANTS} p ON u.user_id = p.user_id
+            WHERE p.post_id = ?
+        `;
+        const { result: teamMembers } = await query(sql, [post_id]);
+
+        res.status(200).json({ code: 200, msg: '获取小队成员列表成功', data: teamMembers });
+    } catch (error) {
+        console.error('获取小队成员列表失败:', error);
+        res.status(500).json({ code: 500, msg: '获取小队成员列表失败' });
+    }
+}
+
 module.exports = {
     publishDynamicPost, updateDynamicPost, deleteDynamicPost, getDynamicPost, getDynamicPostsForPage,
     publishTeamPost, updateTeamPost, deleteTeamPost, getTeamPost, getTeamPostsForPage,
+    getTeamMembers
 }

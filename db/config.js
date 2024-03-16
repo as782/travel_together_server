@@ -23,13 +23,14 @@ const DYNAMIC_POSTS = 'dynamic_posts';
 const DYNAMIC_POST_IMAGES = 'dynamic_post_images';
 const DYNAMIC_POST_COMMENTS = 'dynamic_post_comments';
 const DYNAMIC_POST_LIKES = 'dynamic_post_likes';
+
 const TEAM_ACTIVITY_POSTS = 'team_activity_posts';
 const TEAM_ACTIVITY_IMAGES = 'team_activity_images';
 const TEAM_ACTIVITY_THEMES = 'team_activity_themes';
 const TEAM_ACTIVITY_POST_COMMENTS = 'team_activity_post_comments';
 const TEAM_ACTIVITY_POST_LIKES = 'team_activity_post_likes';
 const ITINERARIES = 'itineraries';
-
+const TEAM_ACTIVITY_PARTICIPANTS  = "team_activity_participants"
 
 
 
@@ -53,6 +54,6 @@ module.exports = {
     TEAM_ACTIVITY_THEMES,
     TEAM_ACTIVITY_POST_COMMENTS,
     TEAM_ACTIVITY_POST_LIKES,
-    ITINERARIES
-
+    ITINERARIES,
+    TEAM_ACTIVITY_PARTICIPANTS
 };

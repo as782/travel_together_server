@@ -1,6 +1,6 @@
 var express = require('express');
 const { query } = require('../db');
-const { getUserInfo, getFollowers, getFans, updateUserInfo } = require('../control/user');
+const { getUserInfo, getFollowers, getFans, updateUserInfo, joinTeam } = require('../control/user');
 var router = express.Router();
 
 
@@ -42,6 +42,10 @@ router.get('/fans/:user_id',getFans)
 
 // 更新用户信息
 router.post('/update', updateUserInfo)
+
+
+// 加入小队
+router.post('/joinTeam/', joinTeam)
 
 
 module.exports = router;
