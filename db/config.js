@@ -30,10 +30,11 @@ const TEAM_ACTIVITY_THEMES = 'team_activity_themes';
 const TEAM_ACTIVITY_POST_COMMENTS = 'team_activity_post_comments';
 const TEAM_ACTIVITY_POST_LIKES = 'team_activity_post_likes';
 const ITINERARIES = 'itineraries';
-const TEAM_ACTIVITY_PARTICIPANTS  = "team_activity_participants"
+const TEAM_ACTIVITY_PARTICIPANTS = "team_activity_participants"
 
 
-
+// 消息通知表
+const MESSAGES = 'messages';
 
 
 
@@ -55,5 +56,6 @@ module.exports = {
     TEAM_ACTIVITY_POST_COMMENTS,
     TEAM_ACTIVITY_POST_LIKES,
     ITINERARIES,
-    TEAM_ACTIVITY_PARTICIPANTS
+    TEAM_ACTIVITY_PARTICIPANTS,
+    MESSAGES
 };

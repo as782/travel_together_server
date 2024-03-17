@@ -12,6 +12,7 @@ var postRouter = require('./routes/post');
 var commentRouter = require('./routes/comment');
 var likeRouter = require('./routes/like');
 var uploadRouter = require('./routes/upload');
+var msgRouter = require('./routes/message');
 
 var app = express();
 
@@ -38,6 +39,7 @@ app.use('/post', postRouter);
 app.use('/comment', commentRouter);
 app.use('/like', likeRouter);
 app.use('/upload', uploadRouter);
+app.use('/msg', msgRouter);
  
 
 // catch 404 and forward to error handler
