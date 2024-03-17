@@ -11,6 +11,7 @@ var themeRouter = require('./routes/theme');
 var postRouter = require('./routes/post');
 var commentRouter = require('./routes/comment');
 var likeRouter = require('./routes/like');
+var uploadRouter = require('./routes/upload');
 
 var app = express();
 
@@ -27,6 +28,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'user_resources')));
 
  
 app.use('/', loginAndRegister);
@@ -35,6 +37,7 @@ app.use('/theme', themeRouter);
 app.use('/post', postRouter);
 app.use('/comment', commentRouter);
 app.use('/like', likeRouter);
+app.use('/upload', uploadRouter);
  
 
 // catch 404 and forward to error handler
