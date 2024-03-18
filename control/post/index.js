@@ -460,8 +460,9 @@ const getDynamicPostsForPage = async (req, res) => {
             data: {
                 posts: postsResult,
                 pagination: {
-                    total_posts: totalPosts,
-                    total_pages: Math.ceil(totalPosts / limit),
+                    pageSize: limit,
+                    totalCount: totalPosts,
+                    totalPages: Math.ceil(totalPosts / limit),
                     current_page: parseInt(page)
                 }
             }
@@ -515,8 +516,9 @@ const getTeamPostsForPage = async (req, res) => {
             data: {
                 posts: postsResult,
                 pagination: {
-                    total_posts: totalPosts,
-                    total_pages: Math.ceil(totalPosts / limit),
+                    pageSize: limit,
+                    totalCount: totalPosts,
+                    totalPages: Math.ceil(totalPosts / limit),
                     current_page: parseInt(page)
                 }
             }
