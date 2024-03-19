@@ -150,9 +150,9 @@ router.post('/login', async (req, res) => {
         res.status(200).json({
             code: 200,
             msg: '登录成功',
-            token: token,
             data: {
-                user_info
+                user_info,
+                token: token
             }
         });
     } catch (error) {
