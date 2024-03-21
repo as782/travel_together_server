@@ -88,6 +88,47 @@ const toggleLikeTeamPost = async (req, res) => {
 }
 
 
+/**
+ * 获取点赞帖子的用户列表
+ * @param {Object} req 请求对象
+ * @param {Object} res 响应对象
+ * @param {number} req.params.post_id 帖子 ID
+ * @param {string} tableName 数据库表名
+ */
+const getLikedUsers = async (req, res, tableName) => {
+    const { post_id } = req.params;
+    const id_key = tableName === DYNAMIC_POST_LIKES ? 'dynamic_post_id' : 'post_id';
+    try {
+        const sql = `SELECT user_id FROM ${tableName} WHERE ${id_key} = ?`;
+        const { result: likedUsers } = await query(sql, [post_id]);
+        res.status(200).json({ code: 200, msg: '获取成功', data: likedUsers });
+    } catch (error) {
+        console.error(`获取点赞帖子的用户列表失败:`, error);
+        res.status(500).json({ code: 500, msg: '获取点赞帖子的用户列表失败' });
+    }
+}
+
+/**
+ * 获取点赞动态帖子的用户列表
+ * @param {Object} req 请求对象
+ * @param {Object} res 响应对象
+ * @param {number} req.params.post_id 动态帖子 ID
+ */
+const getLikedDynamicPostUsers = async (req, res) => {
+    await getLikedUsers(req, res, DYNAMIC_POST_LIKES);
+}
+
+/**
+ * 获取点赞组队帖子的用户列表
+ * @param {Object} req 请求对象
+ * @param {Object} res 响应对象
+ * @param {number} req.params.post_id 组队帖子 ID
+ */
+const getLikedTeamPostUsers = async (req, res) => {
+    await getLikedUsers(req, res, TEAM_ACTIVITY_POST_LIKES);
+}
+
+
 // 管理员使用
 
 /**
@@ -113,5 +154,7 @@ const getUserLikedDynamicPosts = async (req, res) => {
 module.exports = {
     toggleLikeDynamicPost,
     toggleLikeTeamPost,
-    getUserLikedDynamicPosts
+    getUserLikedDynamicPosts,
+    getLikedDynamicPostUsers,
+    getLikedTeamPostUsers
 }
