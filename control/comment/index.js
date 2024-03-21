@@ -42,7 +42,7 @@ const deleteComment = async (req, res, tableName) => {
         const { result: existingComment } = await query(commentCheckSql, [comment_id, user_id]);
 
         if (existingComment.length === 0) {
-            return res.status(404).json({ code: 404, msg: '评论不存在或您无权删除该评论' });
+            return res.status(403).json({ code: 403, msg: '评论不存在或您无权删除该评论' });
         }
 
         // 删除评论

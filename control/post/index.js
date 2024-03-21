@@ -351,7 +351,7 @@ const getTeamPost = async (req, res) => {
         const post = postResult[0];
 
         if (!post) {
-            return res.status(404).json({ code: 404, msg: '帖子不存在' });
+            return res.status(400).json({ code: 400, msg: '帖子不存在' });
         }
 
         // 获取用户信息
@@ -458,13 +458,11 @@ const getDynamicPostsForPage = async (req, res) => {
             code: 200,
             msg: '查询动态帖子列表成功',
             data: {
-                posts: postsResult,
-                pagination: {
-                    pageSize: limit,
-                    totalCount: totalPosts,
-                    totalPages: Math.ceil(totalPosts / limit),
-                    current_page: parseInt(page)
-                }
+                list: postsResult,
+                pageSize: limit,
+                totalCount: totalPosts,
+                totalPages: Math.ceil(totalPosts / limit),
+                currentPage: parseInt(page)
             }
         });
     } catch (error) {
@@ -514,13 +512,11 @@ const getTeamPostsForPage = async (req, res) => {
             code: 200,
             msg: '查询组队帖子列表成功',
             data: {
-                posts: postsResult,
-                pagination: {
-                    pageSize: limit,
-                    totalCount: totalPosts,
-                    totalPages: Math.ceil(totalPosts / limit),
-                    current_page: parseInt(page)
-                }
+                list: postsResult,
+                pageSize: limit,
+                totalCount: totalPosts,
+                totalPages: Math.ceil(totalPosts / limit),
+                currentPage: parseInt(page)
             }
         });
     } catch (error) {

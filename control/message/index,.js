@@ -156,10 +156,10 @@ const getMessagesBetweenUsers = async (req, res) => {
             pageSize: limit,
             totalCount: totalCount,
             totalPages: totalPages,
-            current_page: parseInt(page)
+            currentPage: parseInt(page)
         };
 
-        res.status(200).json({ code: 200, msg: '获取成功', data: { list: result, pagination } });
+        res.status(200).json({ code: 200, msg: '获取成功', data: { list: result, ...pagination } });
     } catch (error) {
         console.error('Error retrieving messages between users: ', error.message);
         res.status(500).json({ code: 500, msg: '获取消息记录失败' });
@@ -207,10 +207,12 @@ const getUserAdminNotifications = async (req, res) => {
             pageSize: limit,
             totalCount: totalAdminNotifications,
             totalPages: totalPages,
-            current_page: parseInt(page)
+            currentPage: parseInt(page)
         };
 
-        res.status(200).json({ code: 200, msg: '获取管理员通知成功', adminNotifications: result, pagination });
+        res.status(200).json({ code: 200, msg: '获取管理员通知成功',data:{
+            list: result, ...pagination 
+        }});
     } catch (error) {
         console.error('Error retrieving user admin notifications: ', error);
         res.status(500).json({ code: 500, msg: '获取管理员通知失败' });
@@ -257,10 +259,14 @@ const getUserInteractiveNotifications = async (req, res) => {
             pageSize: limit,
             totalCount: totalInteractiveNotifications,
             totalPages: totalPages,
-            current_page: parseInt(page)
+            currentPage: parseInt(page)
         };
 
-        res.status(200).json({ code: 200, msg: '获取互动通知成功', interactiveNotifications: result, pagination });
+        res.status(200).json({
+            code: 200, msg: '获取互动通知成功', data: {
+                list: result, ...pagination
+            }
+        });
     } catch (error) {
         console.error('Error retrieving user interactive notifications: ', error);
         res.status(500).json({ code: 500, msg: '获取互动通知失败' });

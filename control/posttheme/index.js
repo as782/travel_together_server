@@ -28,7 +28,7 @@ const deleteTheme = async (req, res) => {
         // 检查主题是否存在
         const { result: existingTheme } = await query('SELECT * FROM team_activity_themes WHERE theme_id = ?', [theme_id]);
         if (existingTheme.length === 0) {
-            return res.status(404).json({ code: 404, msg: '主题不存在' });
+            return res.status(400).json({ code: 400, msg: '主题不存在' });
         }
 
         // 删除主题

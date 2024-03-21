@@ -189,7 +189,7 @@ const getUserInfo = async function (req, res, next) {
     try {
         let { result: userResult } = await query(sql, [userId]);
         if (!userResult.length) {
-            return res.status(404).json({ code: 404, msg: '用户不存在' });
+            return res.status(400).json({ code: 400, msg: '用户不存在' });
         }
         const user_id = userResult[0].user_id;
         // 每个用户的标签信息
@@ -363,12 +363,11 @@ const getUserTeams = async (req, res) => {
         res.status(200).json({
             code: 200,
             data: {
-                pagination: {
-                    total_teams: totalTeamsCount[0].count,
-                    total_pages: Math.ceil(totalTeamsCount[0].count / limit),
-                    current_page: parseInt(page)
-                },
-                teams: userTeams
+                list: userTeams,
+                pageSize: limit,
+                totalCount: totalTeamsCount[0].count,
+                totalPages: Math.ceil(totalTeamsCount[0].count / limit),
+                currentPage: parseInt(page)
             }
         });
     } catch (error) {
@@ -442,12 +441,11 @@ const getMyPosts = async (req, res) => {
         const myPosts = [...teamPosts, ...dynamicPosts];
         res.status(200).json({
             code: 200, msg: '获取我的发布成功', data: {
-                pagination: {
-                    total_posts: totalCount,
-                    total_pages: Math.ceil(totalCount / limit),
-                    current_page: parseInt(page)
-                },
-                posts: myPosts
+                list: myPosts,
+                pageSize: limit,
+                totalCount: totalCount,
+                totalPages: Math.ceil(totalCount / limit),
+                currentPage: parseInt(page)
             }
         });
     } catch (error) {
