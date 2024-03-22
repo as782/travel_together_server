@@ -255,7 +255,9 @@ const getUserInfo = async function (req, res, next) {
 const updateUserInfo = async (req, res, next) => {
     try {
         const { user_id, avatar_url, nickname, gender, bio, birthday, region_name, region_code, contact_phone, contact_email, tags } = req.body;
-
+        console.log(birthday);
+        let birthdayObj = new Date(birthday);
+    
         // 检查用户是否存在
         const { result: userExists } = await query('SELECT COUNT(*) AS count FROM users WHERE user_id = ?', [user_id]);
         if (userExists[0].count === 0) {
@@ -268,7 +270,7 @@ const updateUserInfo = async (req, res, next) => {
             SET avatar_url = ?, nickname = ?, gender = ?, bio = ?, birthday = ?, region_name = ?, region_code = ?, contact_phone = ?, contact_email = ?
             WHERE user_id = ?;
         `;
-        await query(updateSql, [avatar_url, nickname, gender, bio, birthday, region_name, region_code, contact_phone, contact_email, user_id]);
+        await query(updateSql, [avatar_url, nickname, gender, bio, birthdayObj, region_name, region_code, contact_phone, contact_email, user_id]);
 
         // 检查是否存在标签并更新用户标签信息
         if (Array.isArray(tags) && tags.length > 0) {
@@ -295,6 +297,7 @@ const updateUserInfo = async (req, res, next) => {
 
         res.status(200).json({ code: 200, msg: '用户信息更新成功' });
     } catch (error) {
+        console.log(error);
         res.status(500).json({ code: 500, msg: '服务器错误 ' + error.message });
     }
 };

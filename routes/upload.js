@@ -5,12 +5,19 @@ var router = express.Router();
 
 const multer = require('multer');
 const path = require('path');
+const { USERS } = require('../db/config');
 
 // 设置文件存储路径和文件名
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
+    destination: async (req, file, cb) => {
         // 这里可以根据用户的用户名动态设置文件夹路径
         const username = req.params.username;
+        const { result } = await query(`SELECT * FROM ${USERS} WHERE username = ?`, [username])
+
+        if (!result.length) {
+            return cb(new Error('User not found'), false);
+        }
+
         const uploadPath = path.join('./user_resources/images', username, file.fieldname);
         // 如果路径不存在，创建它
         if (!fs.existsSync(uploadPath)) {
