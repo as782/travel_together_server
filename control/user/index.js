@@ -37,7 +37,13 @@ module.exports = {
     followOrUnfollowUser
 };
 
-
+/**
+ * 获取关注
+ * @param {*} req 
+ * @param {*} res 
+ * @param {*} next 
+ * @returns 
+ */
 const getFollowers = async (req, res) => {
     const userId = req.params.user_id;
     if (!userId) {
@@ -109,7 +115,13 @@ const getFollowers = async (req, res) => {
         })
     }
 }
-
+/**
+ * 获取粉丝
+ * @param {*} req 
+ * @param {*} res 
+ * @param {*} next 
+ * @returns 
+ */
 const getFans = async (req, res) => {
     const userId = req.params.user_id;
     if (!userId) {
@@ -179,7 +191,13 @@ const getFans = async (req, res) => {
         })
     }
 }
-
+/**
+ * 获取用户信息
+ * @param {*} req 
+ * @param {*} res 
+ * @param {*} next 
+ * @returns 
+ */
 const getUserInfo = async function (req, res, next) {
     let userId = req.params.id;
     if (!userId) {
@@ -227,7 +245,13 @@ const getUserInfo = async function (req, res, next) {
         res.status(500).json({ code: 500, msg: '服务器错误 ' + error.message });
     }
 }
-
+/**
+ * 更新用户信息
+ * @param {*} req 
+ * @param {*} res 
+ * @param {*} next 
+ * @returns 
+ */
 const updateUserInfo = async (req, res, next) => {
     try {
         const { user_id, avatar_url, nickname, gender, bio, birthday, region_name, region_code, contact_phone, contact_email, tags } = req.body;

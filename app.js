@@ -13,6 +13,7 @@ var commentRouter = require('./routes/comment');
 var likeRouter = require('./routes/like');
 var uploadRouter = require('./routes/upload');
 var msgRouter = require('./routes/message');
+var tagsRouter = require('./routes/tags');
 
 var app = express();
 
@@ -40,6 +41,7 @@ app.use('/comment', commentRouter);
 app.use('/like', likeRouter);
 app.use('/upload', uploadRouter);
 app.use('/msg', msgRouter);
+app.use('/tags', tagsRouter);
  
 
 // catch 404 and forward to error handler
