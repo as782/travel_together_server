@@ -1,6 +1,6 @@
 var express = require('express');
 const { toggleLikeDynamicPost,
-    toggleLikeTeamPost, getUserLikedDynamicPosts, getLikedDynamicPostUsers, getLikedTeamPostUsers } = require('../control/like');
+    toggleLikeTeamPost, getUserLikedDynamicPosts, getLikedDynamicPostUsers, getLikedTeamPostUsers, getUserLikedTeamPosts } = require('../control/like');
 var router = express.Router();
 
 
@@ -15,5 +15,7 @@ router.get('/getLikeTeamPostUsers/:post_id', getLikedTeamPostUsers);
 
 
 // 查询用户点赞的动态帖子
-router.get('/getUserLikedDynamicPosts', getUserLikedDynamicPosts);
+router.get('/getUserLikedDynamicPosts/:user_id', getUserLikedDynamicPosts);
+// 查询用户点赞的组队帖子
+router.get('/getUserLikedTeamPosts/:user_id', getUserLikedTeamPosts);
 module.exports = router;

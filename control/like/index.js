@@ -23,13 +23,13 @@ const toggleLikePost = async (req, res, tableName) => {
             const deleteLikeSql = `DELETE FROM ${tableName} WHERE user_id = ? AND ${id_key} = ?`;
             await query(deleteLikeSql, [user_id, post_id]);
 
-            res.status(200).json({ code: 200, msg: '取消点赞成功' });
+            res.status(200).json({ code: 200, msg: '取消点赞成功', data: -1 });
         } else {
             // 如果不存在点赞记录，则执行点赞操作
             const insertLikeSql = `INSERT INTO ${tableName} (user_id, ${id_key}) VALUES (?, ?)`;
             await query(insertLikeSql, [user_id, post_id]);
 
-            res.status(200).json({ code: 200, msg: '点赞成功' });
+            res.status(200).json({ code: 200, msg: '点赞成功', data: 1 });
         }
     } catch (error) {
         console.error(`操作帖子失败:`, error);
@@ -129,10 +129,10 @@ const getLikedTeamPostUsers = async (req, res) => {
 }
 
 
-// 管理员使用
+
 
 /**
- * 查询用户点赞的帖子
+ * 查询用户点赞的动态
  * @param {Object} req 请求对象
  * @param {Object} res 响应对象
  * @param {number} req.query.user_id 用户 ID
@@ -144,7 +144,34 @@ const getUserLikedDynamicPosts = async (req, res) => {
         const sql = `SELECT * FROM ${DYNAMIC_POST_LIKES} WHERE user_id = ?`;
         const { result: likedPosts } = await query(sql, [user_id]);
 
-        res.status(200).json({ code: 200, msg: '查询用户点赞的帖子成功', data: likedPosts });
+        res.status(200).json({
+            code: 200, msg: '查询用户点赞的帖子成功', data: {
+                list: likedPosts
+            }
+        });
+    } catch (error) {
+        console.error('查询用户点赞的帖子失败:', error);
+        res.status(500).json({ code: 500, msg: '查询用户点赞的帖子失败' });
+    }
+}
+/**
+ * 查询用户点赞的组队
+ * @param {Object} req 请求对象
+ * @param {Object} res 响应对象
+ * @param {number} req.query.user_id 用户 ID
+ */
+const getUserLikedTeamPosts = async (req, res) => {
+    const { user_id } = req.params;
+
+    try {
+        const sql = `SELECT * FROM ${TEAM_ACTIVITY_POST_LIKES} WHERE user_id = ?`;
+        const { result: likedPosts } = await query(sql, [user_id]);
+
+        res.status(200).json({
+            code: 200, msg: '查询用户点赞的帖子成功', data: {
+                list: likedPosts
+            }
+        });
     } catch (error) {
         console.error('查询用户点赞的帖子失败:', error);
         res.status(500).json({ code: 500, msg: '查询用户点赞的帖子失败' });
@@ -155,6 +182,7 @@ module.exports = {
     toggleLikeDynamicPost,
     toggleLikeTeamPost,
     getUserLikedDynamicPosts,
+    getUserLikedTeamPosts,
     getLikedDynamicPostUsers,
-    getLikedTeamPostUsers
+    getLikedTeamPostUsers,
 }
