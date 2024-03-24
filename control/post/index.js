@@ -295,7 +295,7 @@ async function getDynamicPost(req, res) {
                     user_info: {
                         user_id: comment.user_id,
                         nickname,
-                        avatar: avatar_url
+                        avatar_url
                     },
                     content: comment.content,
                     created_at: comment.created_at
@@ -310,16 +310,16 @@ async function getDynamicPost(req, res) {
 
         res.status(200).json({
             code: 200, msg: '查询帖子成功', data: {
-                post: {
-                    user_id,
-                    dynamic_post_id,
-                    content,
-                    images,
-                    created_at,
-                    user_info: { nickname, avatar: avatar_url },
-                    comments,
-                    like_userIds
-                }
+
+                user_id,
+                dynamic_post_id,
+                content,
+                images,
+                created_at,
+                user_info: { user_id, nickname, avatar_url },
+                comments,
+                like_userIds
+
             }
         });
     } catch (error) {
@@ -381,7 +381,7 @@ const getTeamPost = async (req, res) => {
                 user_info: {
                     user_id: comment.user_id,
                     nickname,
-                    avatar: avatar_url
+                    avatar_url
                 }
             };
         }));
@@ -393,15 +393,15 @@ const getTeamPost = async (req, res) => {
 
         res.status(200).json({
             code: 200, msg: '查询帖子成功', data: {
-                post: {
-                    ...post,
-                    user_info: { nickname, avatar: avatar_url },
-                    images,
-                    itinerary,
-                    created_at,
-                    like_userIds,
-                    comments
-                }
+
+                ...post,
+                user_info: { user_id, nickname, avatar_url },
+                images,
+                itinerary,
+                created_at,
+                like_userIds,
+                comments
+
             }
         });
     } catch (error) {

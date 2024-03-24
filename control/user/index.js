@@ -16,9 +16,16 @@ const followOrUnfollowUser = async (req, res) => {
     try {
         let sql, message;
         if (action === 1) {
+            // 检查是否已经关注了目标用户
+            const isFollowing = await isUserFollowing(follower_id, following_id);
+            if (isFollowing) {
+                return res.status(400).json({ code: 400, msg: '您已经关注了该用户' });
+            }
+            // 执行关注操作
             sql = `INSERT INTO ${USER_FOLLOWS} (follower_id, following_id) VALUES (?, ?)`;
             message = '关注成功';
         } else if (action === 0) {
+            // 执行取消关注操作
             sql = `DELETE FROM ${USER_FOLLOWS} WHERE follower_id = ? AND following_id = ?`;
             message = '取消关注成功';
         } else {
@@ -28,9 +35,21 @@ const followOrUnfollowUser = async (req, res) => {
         await query(sql, [follower_id, following_id]);
         res.status(200).json({ code: 200, msg: message });
     } catch (error) {
-        console.error(`${action === 'follow' ? '关注' : '取消关注'}用户失败:`, error);
-        res.status(500).json({ code: 500, msg: `${action === 'follow' ? '关注' : '取消关注'}用户失败` });
+        console.error(`${action === 1 ? '关注' : '取消关注'}用户失败:`, error);
+        res.status(500).json({ code: 500, msg: `${action === 1 ? '关注' : '取消关注'}用户失败` });
     }
+}
+
+/**
+ * 检查用户是否已关注目标用户
+ * @param {number} follower_id 粉丝用户的 ID
+ * @param {number} following_id 目标用户的 ID
+ * @returns {Promise<boolean>} 如果已经关注则返回 true，否则返回 false
+ */
+const isUserFollowing = async (follower_id, following_id) => {
+    const sql = `SELECT COUNT(*) AS count FROM ${USER_FOLLOWS} WHERE follower_id = ? AND following_id = ?`;
+    const {result} = await query(sql, [follower_id, following_id]);
+    return result[0].count > 0;
 }
 
 module.exports = {
@@ -58,7 +77,7 @@ const getFollowers = async (req, res) => {
         if (!followUserIds.length) {
             return res.status(200).json({
                 code: 200, msg: '暂无关注用户', data: {
-                    follows: []
+                    list: []
                 }
             });
         }
@@ -102,7 +121,7 @@ const getFollowers = async (req, res) => {
                 code: 200,
                 msg: '关注列表信息获取成功',
                 data: {
-                    follows: fansUserInfoList
+                    list: fansUserInfoList
                 }
             }
         )
@@ -135,7 +154,7 @@ const getFans = async (req, res) => {
         if (!fansUserIds.length) {
             return res.status(200).json({
                 code: 200, msg: '暂无粉丝', data: {
-                    fans: []
+                    list: []
                 }
             });
         }
@@ -178,7 +197,7 @@ const getFans = async (req, res) => {
                 code: 200,
                 msg: '粉丝列表信息获取成功',
                 data: {
-                    fans: fansUserInfoList
+                    list: fansUserInfoList
                 }
             }
         )
@@ -257,7 +276,7 @@ const updateUserInfo = async (req, res, next) => {
         const { user_id, avatar_url, nickname, gender, bio, birthday, region_name, region_code, contact_phone, contact_email, tags } = req.body;
         console.log(birthday);
         let birthdayObj = new Date(birthday);
-    
+
         // 检查用户是否存在
         const { result: userExists } = await query('SELECT COUNT(*) AS count FROM users WHERE user_id = ?', [user_id]);
         if (userExists[0].count === 0) {
