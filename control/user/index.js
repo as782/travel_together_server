@@ -1,4 +1,4 @@
-const { TEAM_ACTIVITY_PARTICIPANTS, TEAM_ACTIVITY_POSTS, USERS, USER_FOLLOWS, DYNAMIC_POSTS, DYNAMIC_POST_IMAGES, TEAM_ACTIVITY_IMAGES } = require('../../db/config');
+const { TEAM_ACTIVITY_PARTICIPANTS, TEAM_ACTIVITY_POSTS, USERS, USER_FOLLOWS, DYNAMIC_POSTS, DYNAMIC_POST_IMAGES, TEAM_ACTIVITY_IMAGES, DYNAMIC_POST_COMMENTS, DYNAMIC_POST_LIKES, TEAM_ACTIVITY_POST_LIKES, TEAM_ACTIVITY_POST_COMMENTS } = require('../../db/config');
 const { query } = require('../../db/index');
 const getUserTagsInfo = require('../utils/getUserTags');
 const isExistINTable = require('../utils/isExistUserAndPost');
@@ -48,7 +48,7 @@ const followOrUnfollowUser = async (req, res) => {
  */
 const isUserFollowing = async (follower_id, following_id) => {
     const sql = `SELECT COUNT(*) AS count FROM ${USER_FOLLOWS} WHERE follower_id = ? AND following_id = ?`;
-    const {result} = await query(sql, [follower_id, following_id]);
+    const { result } = await query(sql, [follower_id, following_id]);
     return result[0].count > 0;
 }
 
@@ -455,33 +455,71 @@ const getMyPosts = async (req, res) => {
 
         // 查询组队帖子及其相关图片
         const teamPostsSql = `
-            SELECT t.*, GROUP_CONCAT(ti.image_url) AS images
+            SELECT t.*, JSON_ARRAYAGG(JSON_OBJECT('image_id', ti.image_id, 'image_url', ti.image_url)) AS images
             FROM ${TEAM_ACTIVITY_POSTS} t
             LEFT JOIN ${TEAM_ACTIVITY_IMAGES} ti ON t.post_id = ti.post_id
             WHERE t.user_id = ?
-            GROUP BY t.post_id
+            GROUP BY t.post_id 
             ORDER BY t.created_at ASC
             LIMIT ? OFFSET ?`;
         const { result: teamPosts } = await query(teamPostsSql, [user_id, limit, offset]);
 
         // 查询动态帖子及其相关图片
         const dynamicPostsSql = `
-            SELECT d.*, GROUP_CONCAT(di.image_url) AS images
-            FROM ${DYNAMIC_POSTS} d
-            LEFT JOIN ${DYNAMIC_POST_IMAGES} di ON d.dynamic_post_id = di.dynamic_post_id
-            WHERE d.user_id = ?
-            GROUP BY d.dynamic_post_id
-            ORDER BY d.created_at ASC
-            LIMIT ? OFFSET ?`;
+        SELECT d.*,
+               JSON_ARRAYAGG(JSON_OBJECT('image_id', di.image_id, 'image_url', di.image_url)) AS images
+        FROM ${DYNAMIC_POSTS} d
+        LEFT JOIN ${DYNAMIC_POST_IMAGES} di ON d.dynamic_post_id = di.dynamic_post_id
+        WHERE d.user_id = ?
+        GROUP BY d.dynamic_post_id
+        ORDER BY d.created_at ASC
+        LIMIT ? OFFSET ?`;
+
+
         const { result: dynamicPosts } = await query(dynamicPostsSql, [user_id, limit, offset]);
 
         // 处理帖子图片
         teamPosts.forEach(post => {
-            post.images = post.images ? post.images.split(',') : [];
+            post.images = post.images ? JSON.parse(post.images) : [];
         });
         dynamicPosts.forEach(post => {
-            post.images = post.images ? post.images.split(',') : [];
+            post.images = post.images ? JSON.parse(post.images) : [];
         });
+
+        // 遍历组队帖子并查询评论数和点赞数
+        for (const item of teamPosts) {
+            const postId = item.post_id;
+            const commentCountSql = `SELECT COUNT(*) AS comment_count FROM ${TEAM_ACTIVITY_POST_COMMENTS} WHERE post_id = ?`;
+            const likeCountSql = `SELECT COUNT(*) AS like_count FROM ${TEAM_ACTIVITY_POST_LIKES} WHERE post_id = ?`;
+
+            const { result: commentResult } = await query(commentCountSql, [postId]);
+            const { result: likeResult } = await query(likeCountSql, [postId]);
+
+            const commentCount = commentResult[0].comment_count || 0;
+            const likeCount = likeResult[0].like_count || 0;
+
+            // 将评论数和点赞数合并到原始帖子对象中
+            item.comment_count = commentCount;
+            item.like_count = likeCount;
+        }
+
+        // 遍历动态帖子并查询评论数和点赞数
+        for (const item of dynamicPosts) {
+            const postId = item.dynamic_post_id;
+            const commentCountSql = `SELECT COUNT(*) AS comment_count FROM ${DYNAMIC_POST_COMMENTS} WHERE dynamic_post_id = ?`;
+            const likeCountSql = `SELECT COUNT(*) AS like_count FROM ${DYNAMIC_POST_LIKES} WHERE dynamic_post_id = ?`;
+
+            const { result: commentResult } = await query(commentCountSql, [postId]);
+            const { result: likeResult } = await query(likeCountSql, [postId]);
+
+            const commentCount = commentResult[0].comment_count || 0;
+            const likeCount = likeResult[0].like_count || 0;
+
+            // 将评论数和点赞数合并到原始帖子对象中
+            item.comment_count = commentCount;
+            item.like_count = likeCount;
+        }
+
 
         // 合并结果并返回
         const myPosts = [...teamPosts, ...dynamicPosts];
