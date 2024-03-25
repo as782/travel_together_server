@@ -131,7 +131,7 @@ const deleteTeamPostComment = async (req, res) => {
     await deleteComment(req, res, TEAM_ACTIVITY_POST_COMMENTS);
 }
 
-// -------------------------管理员使用API------------------------------------//
+
 
 /**
  * 查询帖子的评论
@@ -143,10 +143,29 @@ const getPostComments = async (req, res) => {
     const { post_id } = req.params;
 
     try {
-        const sql = `SELECT * FROM ${DYNAMIC_POST_COMMENTS} WHERE dynamic_post_id = ?`;
+        const sql = `SELECT c.*, u.user_id, u.nickname, u.avatar_url
+        FROM ${DYNAMIC_POST_COMMENTS} c
+        JOIN ${USERS} u ON c.user_id = u.user_id
+        WHERE c.dynamic_post_id = ?;`;
         const { result: comments } = await query(sql, [post_id]);
+        const newComments = comments.map(e => {
 
-        res.status(200).json({ code: 200, msg: '查询帖子评论成功', data: comments });
+            return {
+                comment_id: e.comment_id,
+                content: e.content,
+                created_at: e.created_at,
+                user_info: {
+                    user_id: e.user_id,
+                    nickname: e.nickname,
+                    avatar_url: e.avatar_url
+                },
+            }
+        })
+        res.status(200).json({
+            code: 200, msg: '查询帖子评论成功', data: {
+                list:newComments
+            }
+        });
     } catch (error) {
         console.error('查询帖子评论失败:', error);
         res.status(500).json({ code: 500, msg: '查询帖子评论失败' });
