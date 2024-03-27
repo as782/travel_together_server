@@ -100,8 +100,8 @@ router.post('/update', updateUserInfo)
 router.post('/joinTeam/', joinTeam)
 /**
  * @swagger
- * /getJoinedTeams/:user_id:
- *   get:
+ * /getJoinedTeams:
+ *   post:
  *     summary: 获取用户加入的小队
  *     description:  
  *     tags:
@@ -110,7 +110,7 @@ router.post('/joinTeam/', joinTeam)
  *     responses:
  */
 // 获取用户加入的小队
-router.get('/getJoinedTeams/:user_id', getUserTeams)
+router.post('/getJoinedTeams', getUserTeams)
 /**
  * @swagger
  * /getMyposts:

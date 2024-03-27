@@ -419,16 +419,14 @@ const getTeamPost = async (req, res) => {
  * @param {Object} res 响应对象
  * @param {number} req.body.page 当前页码，默认为1
  * @param {number} req.body.limit 每页条目数，默认为10
- * @param {number} req.body.user_id 当前用户的 ID，用于判断关注状态（可选）
- * @param {Array<number>} req.body.follow_user_ids 当前用户关注的用户 ID 列表，用于过滤动态列表（可选）
+ * @param {number} req.body.user_id 当前用户的 ID（可选）
  */
 const getDynamicPostsForPage = async (req, res) => {
-    const { page = 1, limit = 10, user_id, follow_user_ids = [] } = req.body;
+    const { page = 1, limit = 10, user_id } = req.body;
 
     try {
         let sql = `SELECT dp.*, u.nickname, u.avatar_url`;
 
-        // 如果指定了用户 ID，则添加判断用户是否关注了动态发布者的字段
         if (user_id) {
             sql += `, CASE WHEN EXISTS (
                         SELECT * FROM ${USER_FOLLOWS} WHERE following_id = ? AND follower_id = dp.user_id
@@ -437,28 +435,80 @@ const getDynamicPostsForPage = async (req, res) => {
 
         sql += ` FROM ${DYNAMIC_POSTS} dp LEFT JOIN ${USERS} u ON dp.user_id = u.user_id`;
 
-        // 如果指定了关注用户 ID，则只查询关注用户的动态
-        if (follow_user_ids.length > 0) {
-            sql += ` WHERE dp.user_id IN (${follow_user_ids.join(',')})`;
+        // 如果用户传入了用户ID，则查询该用户关注的用户的动态，否则查询所有用户的动态
+        if (user_id) {
+            // 查询用户关注的用户 ID 列表
+            const followUserIdsQuery = `SELECT following_id FROM ${USER_FOLLOWS} WHERE follower_id = ?`;
+            const { result: followUserIdsResult } = await query(followUserIdsQuery, [user_id]);
+            const followUserIds = followUserIdsResult.map(item => item.following_id);
+
+            sql += ` WHERE dp.user_id IN (${followUserIds.join(',')})`;
         }
 
-        // 添加分页逻辑
-        const offset = (page - 1) * limit;
-        sql += ` ORDER BY dp.created_at DESC LIMIT ?, ?`;
+        sql += ` ORDER BY dp.created_at DESC LIMIT ? OFFSET ?`;
 
-        const params = user_id ? [user_id, offset, parseInt(limit)] : [offset, parseInt(limit)];
+        const offset = (page - 1) * limit;
+        let params = [];
+
+        if (user_id) {
+            params = [user_id, parseInt(limit), offset];
+        } else {
+            params = [parseInt(limit), offset];
+        }
+
         const { result: postsResult } = await query(sql, params);
 
+        const data = await Promise.all(postsResult.map(async post => {
+            // 查关联图片
+            const { result: imagesResult } = await query(`SELECT * FROM ${DYNAMIC_POST_IMAGES} WHERE dynamic_post_id = ?`, [post.dynamic_post_id]);
+            // 查点赞人数
+            const { result: likesResult } = await query(`SELECT COUNT(*) as total FROM ${DYNAMIC_POST_LIKES} WHERE dynamic_post_id = ?`, [post.dynamic_post_id]);
+            // 查询评论人数
+            const { result: commentsResult } = await query(`SELECT COUNT(*) as total FROM ${DYNAMIC_POST_COMMENTS} WHERE dynamic_post_id = ?`, [post.dynamic_post_id]);
+
+            // 查询用户是否点赞了该动态
+            const { result: isLikedResult } = await query(`SELECT * FROM ${DYNAMIC_POST_LIKES} WHERE user_id = ? AND dynamic_post_id = ?`, [user_id, post.dynamic_post_id]);
+
+            const commentCount = commentsResult[0].total || 0;
+            const likeCount = likesResult[0].total || 0;
+            const isLiked = isLikedResult.length > 0;
+            const images = imagesResult.map(e => {
+                return {
+                    image_id: e.image_id,
+                    image_url: e.image_url
+                }
+            });
+
+            return {
+                dynamic_post_id: post.dynamic_post_id,
+                content: post.content,
+                user_info: {
+                    user_id: post.user_id,
+                    nickname: post.nickname,
+                    avatar_url: post.avatar_url,
+                },
+                isFollowed: post.isFollowed == 0 ? false : true,
+                isLiked,
+                created_at: post.created_at,
+                images: images,
+                like_count: likeCount,
+                comment_count: commentCount,
+            }
+        }));
+
         // 查询帖子总数
-        const totalPostsQuery = `SELECT COUNT(*) as total FROM ${DYNAMIC_POSTS}`;
-        const { result: totalPostsResult } = await query(totalPostsQuery);
+        let totalPostsQuery = `SELECT COUNT(*) as total FROM ${DYNAMIC_POSTS}`;
+        if (user_id) {
+            totalPostsQuery += ` WHERE user_id IN (SELECT following_id FROM ${USER_FOLLOWS} WHERE follower_id = ?)`;
+        }
+        const { result: totalPostsResult } = await query(totalPostsQuery, user_id ? [user_id] : []);
         const totalPosts = totalPostsResult[0].total;
 
         res.status(200).json({
             code: 200,
             msg: '查询动态帖子列表成功',
             data: {
-                list: postsResult,
+                list: data,
                 pageSize: limit,
                 totalCount: totalPosts,
                 totalPages: Math.ceil(totalPosts / limit),
@@ -466,10 +516,11 @@ const getDynamicPostsForPage = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('查询动态帖子列表失败:', error.message);
+        console.error('查询动态帖子列表失败:', error);
         res.status(500).json({ code: 500, msg: '查询动态帖子列表失败' + error.message });
     }
 }
+
 
 
 /**

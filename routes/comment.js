@@ -13,8 +13,8 @@ router.post('/publishDynamicComment',postDynamicPostComment);
 router.post('/deleteDynamicComment',deleteDynamicPostComment);
 
 // 获取用户评论
-router.get('/getUserDynamicComments/:user_id', getUserComments);
+router.post('/getUserDynamicComments', getUserComments);
 // 获取帖子评论
-router.get('/getPostDynamicComments/:post_id', getPostComments);
+router.post('/getPostDynamicComments', getPostComments);
 
 module.exports = router;

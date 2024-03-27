@@ -388,23 +388,32 @@ const getUserTeams = async (req, res) => {
 
         // 查询小队信息及其相关图片
         const teamsSql = `
-            SELECT t.*, GROUP_CONCAT(ti.image_url) AS images
-            FROM ${TEAM_ACTIVITY_POSTS} t
-            LEFT JOIN ${TEAM_ACTIVITY_IMAGES} ti ON t.post_id = ti.post_id
-            WHERE t.post_id IN (
-                SELECT post_id
-                FROM ${TEAM_ACTIVITY_PARTICIPANTS}
-                WHERE user_id = ?
-            )
-            GROUP BY t.post_id
-            ORDER BY t.created_at ASC
-            LIMIT ? OFFSET ?`;
+        SELECT t.*, JSON_ARRAYAGG(JSON_OBJECT('image_id', ti.image_id, 'image_url', ti.image_url)) AS images
+        FROM ${TEAM_ACTIVITY_POSTS} t
+        LEFT JOIN ${TEAM_ACTIVITY_IMAGES} ti ON t.post_id = ti.post_id
+        WHERE t.post_id IN (
+            SELECT post_id
+            FROM ${TEAM_ACTIVITY_PARTICIPANTS}
+            WHERE user_id = ?
+        )
+        GROUP BY t.post_id
+        ORDER BY t.created_at ASC
+        LIMIT ? OFFSET ?`;
         const { result: userTeams } = await query(teamsSql, [user_id, limit, offset]);
 
         // 处理帖子图片
         userTeams.forEach(team => {
-            team.images = team.images ? team.images.split(',') : [];
+            team.images = team.images ? JSON.parse(team.images) : [];
         });
+
+        for(const item of userTeams){
+            const {result} = await query(`SELECT * FROM ${USERS} WHERE user_id = ?`, [item.user_id]);
+            item.user_info ={
+                user_id: result[0].user_id,
+                nickname: result[0].nickname,
+                avatar_url: result[0].avatar_url
+            };
+        }
 
         res.status(200).json({
             code: 200,
