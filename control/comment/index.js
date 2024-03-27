@@ -134,22 +134,29 @@ const deleteTeamPostComment = async (req, res) => {
 
 
 /**
- * 查询帖子的评论
+ * 查询动态帖子的评论（分页）
  * @param {Object} req 请求对象
  * @param {Object} res 响应对象
- * @param {number} req.params.post_id 帖子 ID
+ * @param {number} req.body.post_id 帖子 ID
+ * @param {number} req.body.page 页码
+ * @param {number} req.body.limit 每页数量
  */
 const getPostComments = async (req, res) => {
-    const { post_id } = req.params;
+    const { post_id, page = 1, limit = 10 } = req.body;
+    const offset = (page - 1) * limit;
 
     try {
+        const countSql = `SELECT COUNT(*) AS total FROM ${DYNAMIC_POST_COMMENTS} WHERE dynamic_post_id = ?;`;
+        const { result: countResult } = await query(countSql, [post_id]);
+        const totalComment = countResult[0].total;
+
         const sql = `SELECT c.*, u.user_id, u.nickname, u.avatar_url
         FROM ${DYNAMIC_POST_COMMENTS} c
         JOIN ${USERS} u ON c.user_id = u.user_id
-        WHERE c.dynamic_post_id = ?;`;
-        const { result: comments } = await query(sql, [post_id]);
+        WHERE c.dynamic_post_id = ?
+        LIMIT ?, ?;`;
+        const { result: comments } = await query(sql, [post_id, offset, limit]);
         const newComments = comments.map(e => {
-
             return {
                 comment_id: e.comment_id,
                 content: e.content,
@@ -160,11 +167,20 @@ const getPostComments = async (req, res) => {
                     avatar_url: e.avatar_url
                 },
             }
-        })
+        });
+
+        const responseData = {
+            list: newComments,
+
+            pageSize: limit,
+            totalCount: totalComment,
+            totalPages: Math.ceil(totalComment / limit),
+            currentPage: parseInt(page)
+
+        };
+
         res.status(200).json({
-            code: 200, msg: '查询帖子评论成功', data: {
-                list:newComments
-            }
+            code: 200, msg: '查询帖子评论成功', data: responseData
         });
     } catch (error) {
         console.error('查询帖子评论失败:', error);
@@ -173,24 +189,42 @@ const getPostComments = async (req, res) => {
 }
 
 /**
- * 查询用户的评论
+ * 查询用户动态的评论（分页）
  * @param {Object} req 请求对象
  * @param {Object} res 响应对象
- * @param {number} req.params.user_id 用户 ID
+ * @param {number} req.body.user_id 用户 ID
+ * @param {number} req.body.page 页码
+ * @param {number} req.body.limit 每页数量
  */
 const getUserComments = async (req, res) => {
-    const { user_id } = req.params;
+    const { user_id, page = 1, limit = 10 } = req.body;
+    const offset = (page - 1) * limit;
 
     try {
-        const sql = `SELECT * FROM ${DYNAMIC_POST_COMMENTS} WHERE user_id = ?`;
-        const { result: comments } = await query(sql, [user_id]);
+        const countSql = `SELECT COUNT(*) AS total FROM ${DYNAMIC_POST_COMMENTS} WHERE user_id = ?;`;
+        const { result: countResult } = await query(countSql, [user_id]);
+        const totalComment = countResult[0].total;
 
-        res.status(200).json({ code: 200, msg: '查询用户评论成功', data: comments });
+        const sql = `SELECT * FROM ${DYNAMIC_POST_COMMENTS} WHERE user_id = ? LIMIT ?, ?;`;
+        const { result: comments } = await query(sql, [user_id, offset, limit]);
+
+        const responseData = {
+            list: comments,
+
+            pageSize: limit,
+            totalCount: totalComment,
+            totalPages: Math.ceil(totalComment / limit),
+            currentPage: parseInt(page)
+
+        };
+
+        res.status(200).json({ code: 200, msg: '查询用户评论成功', data: responseData });
     } catch (error) {
         console.error('查询用户评论失败:', error);
         res.status(500).json({ code: 500, msg: '查询用户评论失败' });
     }
 }
+
 
 module.exports = {
     getPostComments,
